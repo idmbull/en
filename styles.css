@@ -1,0 +1,1110 @@
+/* ==========================================================================
+   1. VARIABLES & THEME CONFIGURATION
+   ========================================================================== */
+:root {
+    /* Fonts */
+    --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-mono: 'PT Mono', 'Consolas', 'Monaco', monospace;
+
+    /* Colors - Light Theme (Default) */
+    --bg-primary: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    --container-bg: rgba(255, 255, 255, 0.96);
+    --header-bg: linear-gradient(to right, #4a00e0, #8e2de2);
+
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-light: #fff;
+    --text-muted: #888;
+
+    --accent-color: #4a00e0;
+    --accent-gradient: linear-gradient(to right, #4a00e0, #8e2de2);
+
+    --correct-color: #28a745;
+    --incorrect-color: #e74c3c;
+    --incorrect-bg: rgba(231, 76, 60, 0.15);
+
+    --section-bg: #f8f9fa;
+    --border-color: #e9ecef;
+    --shadow-color: rgba(0, 0, 0, 0.15);
+
+    --toggle-bg: #dfe6e9;
+    --toggle-checked-bg: #4a00e0;
+}
+
+[data-theme="dark"] {
+    /* Colors - Dark Theme */
+    --bg-primary: linear-gradient(135deg, #2d0b59 0%, #0d2f6c 100%);
+    --container-bg: rgba(30, 30, 40, 0.96);
+    --header-bg: linear-gradient(to right, #3a0080, #6a1b9a);
+
+    --text-primary: #f0f0f0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #666;
+
+    --accent-color: #8e2de2;
+    --accent-gradient: linear-gradient(to right, #6a1b9a, #8e2de2);
+
+    --correct-color: #4caf50;
+    --incorrect-color: #f44336;
+    --incorrect-bg: rgba(244, 67, 54, 0.15);
+
+    --section-bg: #2a2a3a;
+    --border-color: #444;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+
+    --toggle-bg: #555;
+    --toggle-checked-bg: #8e2de2;
+}
+
+[data-theme="idm"] {
+    /* Colors - Dark Theme */
+    --bg-primary: #212121;
+    --container-bg: rgba(30, 30, 40, 0.96);
+    --header-bg: rgba(30, 30, 40, 0.96);
+
+    --text-primary: #f0f0f0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #666;
+
+    --accent-color: #8e2de2;
+    --accent-gradient: linear-gradient(to right, #6a1b9a, #8e2de2);
+
+    --correct-color: #4caf50;
+    --incorrect-color: #f44336;
+    --incorrect-bg: rgba(244, 67, 54, 0.15);
+
+    --section-bg: #2a2a3a;
+    --border-color: #444;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+
+    --toggle-bg: #555;
+    --toggle-checked-bg: #8e2de2;
+}
+
+/* --- THEME: OCEAN (Xanh dương mát mẻ) --- */
+[data-theme="ocean"] {
+    --bg-primary: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    --container-bg: rgba(240, 248, 255, 0.95);
+    --header-bg: linear-gradient(to right, #00c6ff, #0072ff);
+
+    --text-primary: #003366;
+    --text-secondary: #4a6fa5;
+    --text-muted: #889bb5;
+
+    --accent-color: #0072ff;
+    --accent-gradient: linear-gradient(to right, #00c6ff, #0072ff);
+
+    --section-bg: #e6f7ff;
+    --border-color: #b3d9ff;
+    --toggle-checked-bg: #0072ff;
+}
+
+/* --- THEME: FOREST (Xanh lá thư giãn) --- */
+[data-theme="forest"] {
+    --bg-primary: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+    --container-bg: rgba(250, 255, 245, 0.96);
+    --header-bg: linear-gradient(to right, #11998e, #38ef7d);
+
+    --text-primary: #1b4d3e;
+    --text-secondary: #4a7c59;
+    --text-muted: #8aa895;
+
+    --accent-color: #2e8b57;
+    --accent-gradient: linear-gradient(to right, #11998e, #38ef7d);
+
+    --section-bg: #f0fff4;
+    --border-color: #c3e6cb;
+    --toggle-checked-bg: #2e8b57;
+    --correct-color: #27ae60;
+}
+
+/* --- THEME: COFFEE (Sepia - Đọc sách, dịu mắt) --- */
+[data-theme="coffee"] {
+    --bg-primary: #d5cabd;
+    /* Màu giấy cũ */
+    --container-bg: #fdf6e3;
+    /* Solarized Light style */
+    --header-bg: #5d4037;
+    /* Nâu cà phê */
+
+    --text-primary: #3e2723;
+    --text-secondary: #6d4c41;
+    --text-muted: #a1887f;
+    --text-light: #efebe9;
+
+    --accent-color: #8d6e63;
+    --accent-gradient: linear-gradient(to right, #8d6e63, #6d4c41);
+
+    --section-bg: #efebe9;
+    --border-color: #d7ccc8;
+    --toggle-bg: #d7ccc8;
+    --toggle-checked-bg: #5d4037;
+}
+
+/* --- THEME: CYBERPUNK (Tương phản cao, Neon) --- */
+[data-theme="cyberpunk"] {
+    --bg-primary: #000000;
+    --container-bg: rgba(10, 10, 10, 0.95);
+    --header-bg: linear-gradient(to right, #ff00cc, #333399);
+
+    --text-primary: #00ff00;
+    /* Matrix green text */
+    --text-secondary: #00ccff;
+    --text-muted: #ff00cc;
+
+    --accent-color: #ff0099;
+    --accent-gradient: linear-gradient(to right, #ff00cc, #333399);
+
+    --correct-color: #00ff00;
+    --incorrect-color: #ff0000;
+    --incorrect-bg: rgba(255, 0, 0, 0.3);
+
+    --section-bg: #111;
+    --border-color: #333;
+    --toggle-bg: #333;
+    --toggle-checked-bg: #ff0099;
+
+    /* Font Mono cho đúng chất code */
+    --font-ui: 'Courier New', Courier, monospace;
+}
+
+/* --- THEME: DRACULA (Dark Mode code editor) --- */
+[data-theme="dracula"] {
+    --bg-primary: #282a36;
+    --container-bg: #44475a;
+    --header-bg: #6272a4;
+
+    --text-primary: #f8f8f2;
+    --text-secondary: #bd93f9;
+    /* Purple text */
+    --text-muted: #6272a4;
+
+    --accent-color: #ff79c6;
+    /* Pink cursor */
+    --accent-gradient: linear-gradient(to right, #bd93f9, #ff79c6);
+
+    --correct-color: #50fa7b;
+    --incorrect-color: #ff5555;
+    --incorrect-bg: rgba(255, 85, 85, 0.2);
+
+    --section-bg: #282a36;
+    --border-color: #6272a4;
+    --toggle-checked-bg: #bd93f9;
+}
+
+/* ==========================================================================
+   2. GLOBAL RESET & BASE STYLES
+   ========================================================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-ui);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #4a00e0, #8e2de2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}
+
+/* Hidden Input Area for Typing */
+/* Tìm class .input-area và thay thế bằng đoạn này */
+.input-area {
+    position: fixed;
+    /* Dùng fixed để nó không làm vỡ layout */
+    top: 0;
+    left: 0;
+    width: 1px;
+    /* Cần có kích thước để IME hoạt động ổn định */
+    height: 1px;
+    opacity: 0;
+    /* Vẫn ẩn đi */
+    overflow: hidden;
+    z-index: -1;
+    pointer-events: none;
+}
+
+strong {
+    font-weight: normal;
+}
+
+/* ==========================================================================
+   3. MAIN LAYOUT
+   ========================================================================== */
+.container {
+    width: 100%;
+    max-width: 850px;
+    background-color: var(--container-bg);
+    border-radius: 16px;
+    box-shadow: 0 15px 35px var(--shadow-color);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+header {
+    background: var(--header-bg);
+    color: var(--text-light);
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* ==========================================================================
+   4. STATS DASHBOARD
+   ========================================================================== */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background-color: var(--section-bg);
+    margin: 20px 25px 10px 25px;
+    border-radius: 12px;
+    padding: 15px;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.stat-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: -7px;
+    height: 60%;
+    width: 1px;
+    background-color: var(--border-color);
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+/* ==========================================================================
+   5. TEXT DISPLAY (TYPING AREA)
+   ========================================================================== */
+.text-display-container {
+    background-color: var(--section-bg);
+    border-radius: 12px;
+    margin: 15px 25px;
+    border: 2px solid transparent;
+    /* Ready for focus state */
+    height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.2s;
+    scroll-behavior: smooth;
+}
+
+.text-display {
+    padding: 25px;
+    line-height: 1.8;
+    font-size: 1.2rem;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.text-display span {
+    transition: background-color 0.1s;
+    border-radius: 2px;
+}
+
+/* --- State Classes --- */
+.correct {
+    color: var(--correct-color);
+}
+
+.incorrect {
+    color: var(--incorrect-color);
+    background-color: var(--incorrect-bg);
+    text-decoration: underline wavy;
+}
+
+.current {
+    background-color: var(--accent-color);
+    color: var(--text-light) !important;
+    border-radius: 2px;
+    animation: softPulse 2s infinite;
+}
+
+/* --- Special Characters (Enter Key) --- */
+.newline-char {
+    color: transparent;
+    /* Mặc định ẩn ký tự mũi tên */
+    display: inline-block;
+    min-width: 0.5em;
+    height: 1.2em;
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    user-select: none;
+    line-height: 1;
+}
+
+/* Khi con trỏ ở Enter */
+.newline-char.current {
+    color: var(--text-light) !important;
+    background-color: var(--accent-color);
+    opacity: 1;
+    padding: 0 2px;
+}
+
+.newline-char.incorrect {
+    color: var(--incorrect-color);
+    background-color: var(--incorrect-bg);
+}
+
+/* Fix thẻ BR để xuống dòng đúng */
+br.visual-break {
+    user-select: none;
+}
+
+p .visual-break:last-child {
+    display: none;
+}
+
+/* --- Blind Mode --- */
+.blind-mode .blind-hidden {
+    color: transparent !important;
+    background: transparent;
+    text-shadow: none;
+}
+
+.blind-mode .current {
+    color: transparent !important;
+    background-color: var(--accent-color);
+    width: 10px;
+    /* Cursor dạng vạch */
+    display: inline-block;
+}
+
+/* Cursor tại Enter trong Blind Mode */
+.blind-mode .newline-char.current {
+    color: var(--text-light) !important;
+    background-color: var(--accent-color);
+    width: auto;
+    min-width: 14px;
+}
+
+/* ==========================================================================
+   6. CONTROLS & TOOLBAR
+   ========================================================================== */
+.toolbar {
+    padding: 0 25px;
+    margin-bottom: 20px;
+}
+
+.toolbar-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+/* Toggle Switch */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 46px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--toggle-bg);
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked+.slider {
+    background-color: var(--toggle-checked-bg);
+}
+
+input:checked+.slider:before {
+    transform: translateX(22px);
+}
+
+/* Volume Control */
+.mini-volume-control {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding-left: 10px;
+    margin-left: 5px;
+    border-left: 1px solid var(--border-color);
+}
+
+.mini-volume-control input[type="range"] {
+    -webkit-appearance: none;
+    width: 80px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.mini-volume-control input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    background: var(--toggle-bg);
+    border-radius: 2px;
+}
+
+.mini-volume-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: var(--toggle-checked-bg);
+    margin-top: -5px;
+    border: 2px solid var(--container-bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   7. FOOTER ACTIONS
+   ========================================================================== */
+footer {
+    border-top: 1px solid var(--border-color);
+    padding: 20px 25px;
+    background-color: var(--container-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn-icon {
+    background: var(--section-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.btn-icon:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    background: var(--container-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Load Button Special Style */
+#fileLoaderBtn,
+#dictationBtn {
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(74, 0, 224, 0.3);
+    min-width: 130px;
+    max-width: 220px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+#fileLoaderBtn:hover,
+#dictationBtn:hover {
+    background: linear-gradient(to right, #5e00ff, #a745ff);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(74, 0, 224, 0.4);
+    color: white;
+}
+
+/* Dragging State */
+#fileLoaderBtn.dragging,
+#dictationBtn.dragging {
+    background: white;
+    color: var(--accent-color);
+    border: 2px dashed var(--accent-color);
+    box-shadow: none;
+    transform: scale(1.05);
+}
+
+/* Select Inputs */
+select {
+    padding: 8px 15px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--section-bg);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    max-width: 250px;
+}
+
+select:hover,
+select:focus {
+    border-color: var(--accent-color);
+}
+
+/* ==========================================================================
+   8. MODAL (DICTATION UPLOAD)
+   ========================================================================== */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.modal-content {
+    background: var(--container-bg);
+    color: var(--text-primary);
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    width: 450px;
+    max-width: 90%;
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.modal.hidden .modal-content {
+    transform: translateY(30px) scale(0.95);
+}
+
+.modal h2 {
+    color: var(--accent-color);
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.modal input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    background: var(--section-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.modal input[type="file"]:hover {
+    border-color: var(--accent-color);
+}
+
+.modal button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--text-secondary);
+}
+
+/* ==========================================================================
+   9. TOOLTIP (FLOATING)
+   ========================================================================== */
+.tooltip-word {
+    border-bottom: 1px dotted var(--text-secondary);
+    cursor: help;
+    position: relative;
+}
+
+#globalTooltip {
+    position: fixed;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #4a00e0, #8e2de2);
+    color: white;
+    border-radius: 10px;
+    font-size: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(5px) scale(0.95);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    box-shadow: 0 8px 24px rgba(74, 0, 224, 0.35);
+    z-index: 2000;
+    max-width: 320px;
+    line-height: 1.5;
+}
+
+#globalTooltip.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Tooltip Arrows */
+#globalTooltip::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+#globalTooltip.pos-top::after {
+    bottom: -8px;
+    left: var(--arrow-left, 50%);
+    border-width: 8px 8px 0 8px;
+    border-color: #8e2de2 transparent transparent transparent;
+}
+
+#globalTooltip.pos-bottom::after {
+    top: -8px;
+    left: var(--arrow-left, 50%);
+    border-width: 0 8px 8px 8px;
+    border-color: transparent transparent #8e2de2 transparent;
+}
+
+/* ==========================================================================
+   10. UTILITIES & ANIMATIONS
+   ========================================================================== */
+.hidden {
+    display: none !important;
+}
+
+/* Speaker Label Style for Dictation */
+.speaker-label {
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 8px;
+    /* user-select: none; */
+    /* Không cho bôi đen */
+    pointer-events: none;
+    /* Không cho click vào để tránh lỗi cursor */
+    display: inline-block;
+    font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.speaker-label span {
+    /* Đảm bảo các ký tự con bên trong (do wrapChars tạo ra) cũng không bị style đè */
+    color: inherit !important;
+    background: none !important;
+}
+
+/* Đảm bảo chế độ Blind Mode không ẩn luôn tên người nói */
+.blind-mode .speaker-label span.blind-hidden {
+    color: inherit !important;
+    background: transparent !important;
+    text-shadow: none !important;
+}
+
+/* Trong Dark Mode chỉnh màu lại chút cho đẹp */
+[data-theme="dark"] .speaker-label {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="idm"] .speaker-label {
+    background: rgb(117 117 117 / 10%);
+}
+
+@keyframes softPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(74, 0, 224, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 4px rgba(74, 0, 224, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(74, 0, 224, 0);
+    }
+}
+
+/* ==========================================================================
+   CUSTOM DROPDOWN (TREE VIEW)
+   ========================================================================== */
+.custom-dropdown {
+    position: relative;
+    min-width: 250px;
+    font-size: 0.9rem;
+    user-select: none;
+}
+
+.dropdown-trigger {
+    background: var(--section-bg);
+    border: 1px solid var(--border-color);
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-primary);
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-trigger:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-trigger .arrow {
+    font-size: 0.7em;
+    margin-left: 10px;
+    color: var(--text-muted);
+}
+
+/* Dropdown Content Box */
+.dropdown-content {
+    position: absolute;
+    bottom: 110%;
+    /* Hiển thị phía trên nút bấm */
+    left: 0;
+    width: 300px;
+    /* Rộng hơn nút bấm để hiển thị tên dài */
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--container-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    z-index: 5000;
+    backdrop-filter: blur(10px);
+
+    /* Animation */
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.dropdown-content.hidden {
+    display: none;
+    /* Dùng display none để tránh click nhầm */
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+/* Tree Items */
+.tree-ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+/* Nested lists indent */
+.tree-ul .tree-ul {
+    padding-left: 18px;
+    border-left: 1px solid var(--border-color);
+    margin-left: 7px;
+    display: none;
+    /* Mặc định ẩn thư mục con */
+}
+
+.tree-ul .tree-ul.expanded {
+    display: block;
+}
+
+.tree-item {
+    margin: 2px 0;
+}
+
+.tree-label {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.1s;
+}
+
+.tree-label:hover {
+    background: var(--section-bg);
+    color: var(--accent-color);
+}
+
+.tree-label.is-folder {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.tree-label.is-file {
+    font-family: var(--font-ui);
+}
+
+.tree-label.active {
+    background: var(--accent-gradient);
+    color: white !important;
+}
+
+/* Icons */
+.tree-icon {
+    margin-right: 8px;
+    font-size: 1rem;
+    display: inline-block;
+    width: 16px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+/* Xoay mũi tên khi mở folder */
+.expanded>.tree-label .tree-arrow {
+    transform: rotate(90deg);
+}
+
+.tree-arrow {
+    display: inline-block;
+    font-size: 0.7rem;
+    margin-right: 5px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+/* Scrollbar đẹp cho dropdown */
+.dropdown-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+/* styles.css */
+
+/* 1. Style cho hộp Pinyin */
+/* styles.css */
+
+/* Đảm bảo container là mốc tọa độ cho absolute */
+.text-display-container {
+    position: relative;
+}
+
+.ime-preview {
+    position: absolute;
+    background-color: #2d3436;
+    /* Màu than chì sang trọng */
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    /* To hơn chút cho dễ nhìn */
+    font-family: var(--font-ui);
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 2000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    line-height: 1;
+
+    /* Animation mượt mà */
+    opacity: 1;
+    /* transition: opacity 0.1s, top 0.1s, left 0.1s; */
+}
+
+.ime-preview.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Tạo mũi tên nhỏ bên dưới hộp */
+.ime-preview::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    /* Nằm dưới hộp */
+    left: 10px;
+    /* Cách mép trái 10px */
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #2d3436;
+    /* Màu trùng màu nền hộp */
+}
+
+/* Class bổ sung khi hộp đảo chiều xuống dưới (nếu gõ dòng đầu) */
+.ime-preview.flipped::after {
+    bottom: auto;
+    top: -6px;
+    border-top: none;
+    border-bottom: 6px solid #2d3436;
+}
+
+/* 2. CẬP NHẬT LẠI .input-area */
+/* Chúng ta cần nó absolute để di chuyển theo con trỏ */
+.input-area {
+    position: absolute;
+    /* Bỏ top/left cố định đi, JS sẽ tính toán */
+    width: 1px;
+    height: 1.5rem;
+    /* Chiều cao bằng dòng chữ để IME box hiện đúng tầm mắt */
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+/* ==========================================================================
+   11. RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 768px) {
+    .container {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .stat-item:nth-child(2)::after {
+        display: none;
+    }
+
+    .text-display-container {
+        height: 35vh;
+        margin: 10px 15px;
+    }
+
+    .text-display {
+        padding: 15px;
+        font-size: 1.1rem;
+    }
+
+    .toolbar {
+        padding: 0 15px;
+    }
+
+    .toolbar-left {
+        justify-content: space-between;
+    }
+
+    .btn-icon {
+        width: 100%;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .mini-volume-control {
+        border-left: none;
+        padding-left: 0;
+        margin-left: 0;
+    }
+}

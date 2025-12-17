@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>HTML -> Table parser (wordlist → bảng)</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;max-width:1100px;margin:20px auto;padding:16px;}
+  h1{margin:0 0 8px}
+  p.lead{margin:4px 0 18px;color:#333}
+  textarea{width:100%;height:280px;padding:10px;font-family:monospace;font-size:13px;box-sizing:border-box}
+  button{margin:6px 6px 6px 0;padding:8px 12px;border-radius:6px;border:1px solid #bbb;background:#f6f6f6;cursor:pointer}
+  button.primary{background:#0366d6;color:#fff;border-color:#0356b6}
+  .controls{margin:10px 0}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{border:1px solid #ddd;padding:6px;text-align:left;vertical-align:top}
+  th{background:#f3f6fb}
+  .small{font-size:13px;color:#555}
+  .flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .col-toggle{display:flex;gap:6px;flex-wrap:wrap}
+  .download-link{display:inline-block;margin-left:8px}
+  .img-thumb{height:64px;max-width:120px;object-fit:cover;border-radius:4px}
+  .note{font-size:13px;color:#444;margin-top:8px}
+  .error{color:#b00}
+</style>
+</head>
+<body>
+  <h1>Trình chuyển đổi <code>&lt;ul class="wordlist"&gt;</code> → bảng</h1>
+  <p class="lead">Dán nội dung <code>&lt;ul&gt;</code> (như mẫu của bạn) vào ô phía dưới rồi bấm <strong>Parse</strong>.</p>
+
+  <label><strong>1) Dán HTML (mẫu chứa &lt;ul class="wordlist"&gt; ... )</strong></label>
+  <textarea id="inputHtml" placeholder="Dán đoạn &lt;ul&gt; ở đây..."></textarea>
+
+  <div class="controls">
+    <div class="flex">
+      <button id="btnParse" class="primary">Parse</button>
+      <button id="btnClear">Clear</button>
+      <button id="btnCopyTable">Copy table (CSV)</button>
+      <button id="btnDownloadCSV">Export CSV</button>
+      <button id="btnDownloadJSON">Export JSON</button>
+      <button id="btnDownloadHTML">Export HTML table</button>
+      <div id="msg" class="small"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <label><strong>2) Chọn cột muốn hiển thị:</strong></label>
+    <div class="col-toggle" id="colToggle"></div>
+  </div>
+
+  <div id="preview"></div>
+
+<script>
+/* Parser + exporter script */
+(function(){
+  const defaultCols = [
+    {key:'nid', label:'nid'},
+    {key:'word', label:'word'},
+    {key:'title', label:'title'},
+    {key:'pro', label:'pronunciation (pro)'},
+    {key:'enPron', label:'pronunciation (from .en-pron)'},
+    {key:'img', label:'img (attribute)'},
+    {key:'imgSrc', label:'image src (inner <img>)'},
+    {key:'source', label:'audio source'},
+    {key:'remainaudioloop', label:'remainaudioloop'},
+    {key:'desc', label:'description (.en-desc)'},
+    {key:'example', label:'example (.en-exam)'}
+  ];
+
+  const $ = id=>document.getElementById(id);
+  const input = $('inputHtml'), btnParse = $('btnParse'), preview = $('preview');
+  const msg = $('msg'), colToggle = $('colToggle');
+  const btnClear = $('btnClear'), btnCopyTable=$('btnCopyTable'), btnDownloadCSV=$('btnDownloadCSV');
+  const btnDownloadJSON=$('btnDownloadJSON'), btnDownloadHTML=$('btnDownloadHTML');
+
+  let lastData = [];
+
+  function createColToggles(){
+    colToggle.innerHTML = '';
+    defaultCols.forEach(c=>{
+      const cb = document.createElement('input');
+      cb.type='checkbox';
+      cb.checked = true;
+      cb.id = 'col_'+c.key;
+      cb.dataset.key = c.key;
+      const lbl = document.createElement('label');
+      lbl.style.display='inline-flex';
+      lbl.style.alignItems='center';
+      lbl.style.gap='6px';
+      lbl.style.padding='4px 6px';
+      lbl.style.border='1px solid #eee';
+      lbl.style.borderRadius='6px';
+      lbl.style.background='#fff';
+      lbl.htmlFor = cb.id;
+      lbl.appendChild(cb);
+      const span = document.createElement('span');
+      span.textContent = c.label;
+      span.style.fontSize='13px';
+      lbl.appendChild(span);
+      colToggle.appendChild(lbl);
+    });
+  }
+
+  function parseHtmlToData(html){
+    const doc = new DOMParser().parseFromString(html,'text/html');
+    // find ul with class wordlist OR any UL > LI items
+    const lists = doc.querySelectorAll('ul.wordlist, ul');
+    if(lists.length === 0) return {error:'Không tìm thấy thẻ <ul> trong nội dung.'};
+    // try to pick ul.wordlist first
+    let ul = doc.querySelector('ul.wordlist') || lists[0];
+    const items = ul.querySelectorAll('li');
+    const out = [];
+    items.forEach((li, idx)=>{
+      // attributes from <li>
+      const attr = (name)=> li.hasAttribute(name) ? li.getAttribute(name) : '';
+      const obj = {
+        nid: attr('nid') || '',
+        word: attr('word') || '',
+        title: attr('title') || '',
+        pro: attr('pro') || '',
+        img: attr('img') || '',
+        remainaudioloop: attr('remainaudioloop') || '',
+        source: attr('source') || ''
+      };
+      // inner image src (first <img> descendant)
+      const innerImg = li.querySelector('img');
+      obj.imgSrc = innerImg ? (innerImg.getAttribute('src') || innerImg.getAttribute('source') || '') : '';
+
+      // pronunciation inside .en-pron (if present)
+      const enPron = li.querySelector('.en-pron');
+      obj.enPron = enPron ? enPron.textContent.trim().replace(/^\[|\]$/g,'') : '';
+
+      // description from .en-desc (strip tags, keep text)
+      const descEl = li.querySelector('.en-desc');
+      obj.desc = descEl ? getCleanText(descEl) : '';
+
+      // example from .en-exam
+      const examEl = li.querySelector('.en-exam');
+      obj.example = examEl ? getCleanText(examEl).replace(/^→\s*/,'') : '';
+
+      // fallback: if word empty, try find .en-word text
+      if(!obj.word){
+        const enWordEl = li.querySelector('.en-word');
+        if(enWordEl){
+          // take first token before space
+          const txt = enWordEl.textContent.trim();
+          const first = txt.split(/\s+/)[0];
+          obj.word = first || obj.word;
+        }
+      }
+
+      out.push(obj);
+    });
+    return {data: out};
+  }
+
+  function getCleanText(el){
+    // clone node and remove child images and arrow spans, then return textContent trimmed.
+    const clone = el.cloneNode(true);
+    // remove images
+    clone.querySelectorAll('img').forEach(n=>n.remove());
+    // remove elements with class arrow
+    clone.querySelectorAll('.arrow').forEach(n=>n.remove());
+    // replace strong/em tags by their text - textContent will already include them
+    return clone.textContent.replace(/\s+/g,' ').trim();
+  }
+
+  function renderTable(data){
+    if(!data || !data.length){
+      preview.innerHTML = '<div class="note">Không có dữ liệu để hiển thị.</div>';
+      return;
+    }
+
+    // selected columns
+    const cols = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
+      .filter(cb=>cb.checked)
+      .map(cb=>cb.dataset.key);
+
+    const headers = defaultCols.filter(c=>cols.includes(c.key)).map(c=>c.label);
+    const keys = defaultCols.filter(c=>cols.includes(c.key)).map(c=>c.key);
+
+    // build table
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    keys.forEach(k=>{
+      const th = document.createElement('th');
+      const label = defaultCols.find(c=>c.key===k).label;
+      th.textContent = label;
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    data.forEach(row=>{
+      const tr = document.createElement('tr');
+      keys.forEach(k=>{
+        const td = document.createElement('td');
+        let val = row[k] || '';
+        if(k==='imgSrc' && val){
+          // show thumbnail
+          const img = document.createElement('img');
+          img.src = val;
+          img.alt = row.word || '';
+          img.className = 'img-thumb';
+          td.appendChild(img);
+        } else if(k==='source' && val){
+          const a = document.createElement('a');
+          a.href = val;
+          a.textContent = val;
+          a.target = '_blank';
+          td.appendChild(a);
+        } else {
+          td.textContent = val;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    preview.innerHTML = '<h3 class="small">BẢN XEM TRƯỚC</h3>';
+    preview.appendChild(table);
+  }
+
+  function toCSV(data, keys){
+    // build header
+    const header = keys.map(k=>escapeCSV(k)).join(',');
+    const lines = data.map(row=>{
+      return keys.map(k=>escapeCSV(row[k]||'')).join(',');
+    });
+    return [header].concat(lines).join('\n');
+
+    function escapeCSV(s){
+      // ensure string
+      s = String(s || '');
+      if(s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')){
+        return '"' + s.replace(/"/g,'""') + '"';
+      }
+      return s;
+    }
+  }
+
+  function downloadFilename(ext){
+    const d = new Date();
+    const stamp = d.toISOString().slice(0,19).replace(/[:T]/g,'-');
+    return `wordlist-${stamp}.${ext}`;
+  }
+
+  // events
+  btnParse.addEventListener('click', ()=>{
+    msg.textContent = '';
+    const html = input.value.trim();
+    if(!html){
+      msg.textContent = 'Vui lòng dán HTML vào ô trên.';
+      msg.className = 'small error';
+      return;
+    }
+    const res = parseHtmlToData(html);
+    if(res.error){
+      msg.textContent = res.error;
+      msg.className = 'small error';
+      preview.innerHTML = '';
+      lastData = [];
+      return;
+    }
+    lastData = res.data;
+    createColToggles(); // (recreate in case not yet)
+    renderTable(lastData);
+    msg.textContent = `Đã parse ${lastData.length} items.`;
+    msg.className = 'small';
+  });
+
+  btnClear.addEventListener('click', ()=>{
+    input.value = '';
+    preview.innerHTML = '';
+    msg.textContent = '';
+    lastData = [];
+  });
+
+  // when toggles change re-render
+  colToggle.addEventListener('change', ()=>{
+    if(lastData && lastData.length) renderTable(lastData);
+  });
+
+  btnCopyTable.addEventListener('click', async ()=>{
+    if(!lastData.length){ msg.textContent='Không có dữ liệu để copy.'; return; }
+    const keys = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
+      .filter(cb=>cb.checked).map(cb=>cb.dataset.key);
+    const csv = toCSV(lastData, keys);
+    try{
+      await navigator.clipboard.writeText(csv);
+      msg.textContent = 'Đã copy CSV vào clipboard.';
+      msg.className = 'small';
+    }catch(e){
+      msg.textContent = 'Không copy được (trình duyệt chặn). Bạn có thể Export CSV.';
+      msg.className = 'small error';
+    }
+  });
+
+  btnDownloadCSV.addEventListener('click', ()=>{
+    if(!lastData.length){ msg.textContent='Không có dữ liệu để export.'; return; }
+    const keys = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
+      .filter(cb=>cb.checked).map(cb=>cb.dataset.key);
+    const csv = toCSV(lastData, keys);
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = downloadFilename('csv');
+    document.body.appendChild(a); a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    msg.textContent = 'Đang tải CSV...';
+  });
+
+  btnDownloadJSON.addEventListener('click', ()=>{
+    if(!lastData.length){ msg.textContent='Không có dữ liệu để export.'; return; }
+    const blob = new Blob([JSON.stringify(lastData, null, 2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = downloadFilename('json');
+    document.body.appendChild(a); a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    msg.textContent = 'Đang tải JSON...';
+  });
+
+  btnDownloadHTML.addEventListener('click', ()=>{
+    if(!lastData.length){ msg.textContent='Không có dữ liệu để export.'; return; }
+    // build simple standalone HTML table
+    const keys = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
+      .filter(cb=>cb.checked).map(cb=>cb.dataset.key);
+    const headers = defaultCols.filter(c=>keys.includes(c.key)).map(c=>c.label);
+    const rows = lastData.map(r => keys.map(k => r[k] ? r[k] : ''));
+    let html = `<!doctype html><html><head><meta charset="utf-8"><title>Export table</title>
+    <style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px;text-align:left}</style>
+    </head><body><table><thead><tr>${headers.map(h=>'<th>'+escapeHtml(h)+'</th>').join('')}</tr></thead><tbody>`;
+    rows.forEach(row=>{
+      html += '<tr>' + row.map(cell=>'<td>'+escapeHtml(String(cell))+'</td>').join('') + '</tr>';
+    });
+    html += '</tbody></table></body></html>';
+    const blob = new Blob([html],{type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = downloadFilename('html');
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    msg.textContent = 'Đang tải HTML...';
+  });
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // init
+  createColToggles();
+  msg.textContent = 'Sẵn sàng. Dán HTML mẫu rồi bấm Parse.';
+})();
+</script>
+
+<div style="margin-top:18px" class="note">
+  Ghi chú:
+  <ul>
+    <li>Trình parser cố gắng lấy: <strong>nid, word, title, pro, en-pron, img (thuộc tính), image src (thẻ img), source (audio), remainaudioloop, mô tả (.en-desc), ví dụ (.en-exam)</strong>.</li>
+    <li>Nếu đường dẫn ảnh/audio là đường dẫn tương đối (ví dụ bắt đầu bằng <code>/apps-data/...</code>), file export sẽ ghi nguyên chuỗi đó — bạn có thể thay thế bằng script tìm/ghép base URL nếu cần.</li>
+    <li>Nếu muốn thêm trường khác (ví dụ lấy thẻ <code>strong</code> cụ thể), mình có thể sửa file để trích thêm.</li>
+  </ul>
+</div>
+
+</body>
+</html>
