@@ -78,6 +78,14 @@ export async function initApp() {
         DOM.volumeInput.oninput = (e) => superPlayer.setVolume(parseFloat(e.target.value));
     }
 
+    EventBus.on(EVENTS.EXERCISE_COMPLETE, () => {
+        // Dừng mọi âm thanh đang phát hoặc sắp phát
+        superPlayer.stop();
+
+        // Nếu cần thiết, có thể suspend context để chắc chắn im lặng
+        // if (superPlayer.ctx) superPlayer.ctx.suspend();
+    });
+
     EventBus.on(EVENTS.EXERCISE_START, () => {
         // 1. Đánh thức AudioContext (Bắt buộc bởi trình duyệt)
         if (superPlayer.ctx?.state === 'suspended') {

@@ -1,10 +1,11 @@
 import { DOM } from "./state.js";
 import { Store } from "./core/store.js";
-import { runTypingEngine } from "./typing-engine.js";
+import { runTypingEngine, resetTypingEngine } from "./typing-engine.js";
 import { updateActiveSpans, applyBlindMode } from "./renderer.js";
 import { showTooltipForSpan } from "./tooltip.js";
 import { AutoScroller } from "./utils/scroller.js";
 import { EventBus, EVENTS } from "./core/events.js";
+import { getFinalResults } from "./stats.js";
 
 const PRELOAD_WINDOW = 5;
 let scroller;
@@ -171,6 +172,7 @@ export function resetController() {
     scroller?.reset();
     isComposing = false;
     hideImeTooltip();
+    resetTypingEngine();
 
     virtualValue = "";
     if (DOM.textInput) DOM.textInput.value = "";
@@ -271,11 +273,33 @@ export function handleGlobalInput(overrideText = null, suppressEngineAudio = fal
 
     if (isComplete) {
         if (DOM.textInput) DOM.textInput.disabled = true;
+
         EventBus.emit(EVENTS.EXERCISE_COMPLETE);
         document.dispatchEvent(new CustomEvent("timer:stop"));
+
         setTimeout(() => {
-            if (DOM.resultModal) DOM.resultModal.classList.remove("hidden");
-            else alert("🎉 Hoàn thành!");
-        }, 300);
+            // 1. Tính toán số liệu chính xác lần cuối cùng (dựa trên endTime)
+            // Lưu ý: finalLength ở đây là độ dài thực tế của văn bản (finalText.length)
+            const results = getFinalResults(finalText.length);
+
+            // 2. [QUAN TRỌNG] Cập nhật ngược lại thanh stat-item cho khớp
+            // Để người dùng thấy con số trên thanh nhảy về đúng giá trị chốt hạ
+            if (DOM.wpmEl) DOM.wpmEl.textContent = results.wpm;
+            if (DOM.timeEl) DOM.timeEl.textContent = results.time;
+            if (DOM.accuracyEl) DOM.accuracyEl.textContent = results.accuracy;
+            if (DOM.errorsEl) DOM.errorsEl.textContent = results.errors;
+
+            // 3. Hiển thị Modal với cùng bộ số liệu đó
+            if (DOM.resultModal) {
+                if (DOM.resAcc) DOM.resAcc.textContent = results.accuracy;
+                if (DOM.resWpm) DOM.resWpm.textContent = results.wpm;
+                if (DOM.resTime) DOM.resTime.textContent = results.time;
+                if (DOM.resErr) DOM.resErr.textContent = results.errors;
+
+                DOM.resultModal.classList.remove("hidden");
+            } else {
+                alert(`🎉 Hoàn thành!\nAcc: ${results.accuracy} | WPM: ${results.wpm}`);
+            }
+        }, 100);
     }
 }

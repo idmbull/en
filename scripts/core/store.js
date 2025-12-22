@@ -62,12 +62,16 @@ export const Store = {
     },
 
     startExercise() {
+        if (state.isActive) return;
         state.isActive = true;
         state.startTime = Date.now();
     },
 
     stopExercise() {
         state.isActive = false;
+        if (!state.endTime) {
+            state.endTime = Date.now();
+        }
     },
 
     setSpans(spans) { state.textSpans = spans; },
