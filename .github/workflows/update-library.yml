@@ -1,4 +1,4 @@
-name: Update Playlist JSON
+name: Update Library JSON
 
 # Cấu hình Trigger: Chạy khi có code push lên nhánh main
 # NHƯNG chỉ chạy khi có thay đổi trong thư mục 'texts' hoặc file script
@@ -7,8 +7,8 @@ on:
     branches:
       - main  # Hoặc 'master' tùy tên nhánh chính của bạn
     paths:
-      - 'texts/**'             # Khi thay đổi nội dung bài tập
-      - 'generate-playlist.js' # Khi sửa logic tạo file
+      - 'library/**'             # Khi thay đổi nội dung bài tập
+      - 'generate-library.js' # Khi sửa logic tạo file
 
 # Cấp quyền ghi (write) để bot có thể commit file json ngược lại vào repo
 permissions:
@@ -31,12 +31,12 @@ jobs:
 
       # 3. Chạy script tạo JSON (File này bạn đã tạo ở bước trước)
       - name: Run generation script
-        run: node generate-playlist.js
+        run: node generate-library.js
 
       # 4. Commit và Push thay đổi (nếu có)
       - name: Commit & Push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "🤖 Auto-update playlist JSON [skip ci]"
-          file_pattern: 'dictation.json index.json' # Chỉ commit 2 file này
+          file_pattern: 'library.json' # Chỉ commit 2 file này
           branch: main
