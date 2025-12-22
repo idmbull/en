@@ -4,74 +4,93 @@ import { Store } from "./core/store.js";
 import { wrapChars, convertInlineFootnotes } from "./utils.js";
 import { EventBus, EVENTS } from "./core/events.js";
 
-function computeWordMetadata(text) {
+// [MODIFIED] Hàm tách từ thông minh hỗ trợ CJK (Chinese-Japanese-Korean)
+const REGEX_KOREAN = /[\uAC00-\uD7AF]/;
+const REGEX_CHINESE = /[\u4e00-\u9fa5]/;
+
+function computeMetadata(text) {
     const tokens = [];
     const starts = [];
 
-    // Sử dụng Intl.Segmenter cho tiếng Trung
     if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-        const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
-        const segments = segmenter.segment(text);
-        for (const seg of segments) {
-            // Chỉ lấy các phần tử là từ ngữ (loại bỏ dấu câu nếu cần, nhưng ở đây ta lấy hết để map)
-            if (seg.isWordLike) {
-                tokens.push(seg.segment);
-                starts.push(seg.index);
+        // [SỬA ĐỔI] Tự động chọn ngôn ngữ cho bộ tách từ
+        let lang = 'en';
+        if (REGEX_KOREAN.test(text)) {
+            lang = 'ko'; // Tiếng Hàn
+        } else if (REGEX_CHINESE.test(text)) {
+            lang = 'zh-CN'; // Tiếng Trung
+        }
+
+        const segmenter = new Intl.Segmenter(lang, { granularity: 'word' });
+        const iterator = segmenter.segment(text);
+
+        for (const segment of iterator) {
+            if (segment.isWordLike) {
+                tokens.push(segment.segment);
+                starts.push(segment.index);
             }
         }
     } else {
-        // Fallback: Tách từng ký tự
-        for (let i = 0; i < text.length; i++) {
-            tokens.push(text[i]);
-            starts.push(i);
+        // Fallback cũ (giữ nguyên hoặc thêm regex tiếng Hàn vào nếu cần hỗ trợ browser cổ)
+        // Với tiếng Hàn hiện đại, Intl.Segmenter là bắt buộc để tách đúng.
+        const re = /[a-z0-9\u4e00-\u9fa5\uAC00-\uD7AF]+(?:[,'./-][a-z0-9\u4e00-\u9fa5\uAC00-\uD7AF]+)*/gi;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            tokens.push(m[0]);
+            starts.push(m.index);
         }
     }
+
     Store.setWordMetadata(tokens, starts);
+    return tokens;
 }
 
 export function displayText(rawHtmlOrMarkdown) {
     const withFootnotes = convertInlineFootnotes(rawHtmlOrMarkdown);
     DOM.textDisplay.innerHTML = marked.parse(withFootnotes);
 
-    const sourceText = Store.getSource().text || "";
-    computeWordMetadata(sourceText);
+    // Tính toán token ngay sau khi render text
+    const tokens = computeMetadata(Store.getSource().text || "");
 
-    // Initial Preload
-    const tokens = Store.getState().wordTokens;
-    if (tokens && tokens.length > 0) {
+    // Preload audio cho 5 từ đầu tiên
+    if (tokens.length > 0) {
         EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(0, 5));
     }
 
-    // Wrap chars logic
     const walker = document.createTreeWalker(DOM.textDisplay, NodeFilter.SHOW_TEXT);
     const nodesToReplace = [];
 
     while (walker.nextNode()) {
         const node = walker.currentNode;
-        if (!node.textContent && !node.parentNode.classList.contains("tooltip-word")) continue;
+        const p = node.parentElement;
+
+        if (p.closest('.visual-header') || p.closest('.speaker-label') || p.closest('.skipped-text')) continue;
+        if (!node.textContent && !p.classList.contains("tooltip-word")) continue;
         nodesToReplace.push(node);
     }
 
     nodesToReplace.forEach(node => {
         const parent = node.parentNode;
         const text = node.textContent;
-        if (!text && parent === DOM.textDisplay) return;
+        if (parent === DOM.textDisplay && !text.trim()) return;
 
         if (parent.classList?.contains("tooltip-word")) {
             parent.innerHTML = "";
-            const note = parent.dataset.note || "";
-            parent.appendChild(wrapChars(text, "tooltip-char", note));
+            parent.appendChild(wrapChars(text, "tooltip-char", parent.dataset.note || ""));
         } else {
-            const frag = wrapChars(text);
-            parent.replaceChild(frag, node);
+            parent.replaceChild(wrapChars(text), node);
         }
     });
 
-    // Fix Layout Orphan Newlines
-    const orphans = DOM.textDisplay.querySelectorAll(':scope > .newline-char');
-    orphans.forEach(span => {
-        const prev = span.previousElementSibling;
-        if (prev && /^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(prev.tagName)) {
+    // Xử lý xuống dòng visual
+    DOM.textDisplay.querySelectorAll(':scope > .newline-char').forEach(span => {
+        let prev = span.previousElementSibling;
+        while (prev && (prev.tagName === 'BR' || prev.classList.contains('visual-break'))) {
+            prev = prev.previousElementSibling;
+        }
+        if (!prev || prev.classList.contains('visual-header')) {
+            span.remove();
+        } else if (/^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(prev.tagName)) {
             prev.appendChild(span);
             if (span.nextElementSibling?.classList.contains('visual-break')) {
                 prev.appendChild(span.nextElementSibling);
@@ -79,23 +98,49 @@ export function displayText(rawHtmlOrMarkdown) {
         }
     });
 
-    // Update State Spans
-    const allCandidates = Array.from(DOM.textDisplay.querySelectorAll("span"));
-    const textSpans = allCandidates.filter(s =>
+    DOM.textDisplay.querySelectorAll(':scope > br').forEach(br => br.remove());
+
+    // Logic đồng bộ Spans (Self-Healing)
+    const rawSpans = Array.from(DOM.textDisplay.querySelectorAll("span")).filter(s =>
         !s.children.length &&
         !s.classList.contains('tooltip-word') &&
-        !s.closest('.speaker-label')
+        !s.closest('.speaker-label') &&
+        !s.closest('.visual-header') &&
+        !s.closest('.skipped-text')
     );
 
-    Store.setSpans(textSpans);
+    const sourceText = Store.getSource().text;
+    const verifiedSpans = [];
+    let textIdx = 0;
+
+    for (const span of rawSpans) {
+        if (textIdx >= sourceText.length) break;
+
+        const spanChar = span.textContent;
+        const expectedChar = sourceText[textIdx];
+        const isNewlineSpan = span.classList.contains('newline-char');
+        const effectiveSpanChar = isNewlineSpan ? " " : spanChar;
+
+        if (effectiveSpanChar === expectedChar) {
+            verifiedSpans.push(span);
+            textIdx++;
+        } else if (effectiveSpanChar === ' ' && expectedChar !== ' ') {
+            // Phantom space -> Ignore
+        } else {
+            // Mismatch -> Vẫn push để không gãy index
+            verifiedSpans.push(span);
+            textIdx++;
+        }
+    }
+
+    Store.setSpans(verifiedSpans);
     Store.setPrevIndex(0);
 
-    allCandidates.forEach(s => s.classList.remove("current", "correct", "incorrect"));
-    if (textSpans[0]) textSpans[0].classList.add("current");
+    DOM.textDisplay.querySelectorAll(".current, .correct, .incorrect").forEach(s => s.classList.remove("current", "correct", "incorrect"));
+    if (verifiedSpans[0]) verifiedSpans[0].classList.add("current");
 
     applyBlindMode(0);
 
-    // Tooltip Events
     DOM.textDisplay.querySelectorAll(".tooltip-word").forEach(el => {
         el.addEventListener("mouseenter", () => document.dispatchEvent(new CustomEvent("tooltip:show", { detail: el })));
         el.addEventListener("mouseleave", () => document.dispatchEvent(new Event("tooltip:hide")));
@@ -109,22 +154,18 @@ export function applyBlindMode(currentIndex) {
         spans.forEach(s => s.classList.remove("blind-hidden"));
         return;
     }
-    for (let i = 0; i < spans.length; i++) {
-        if (i <= currentIndex) spans[i].classList.remove("blind-hidden");
-        else spans[i].classList.add("blind-hidden");
-    }
+    spans.forEach((s, i) => s.classList.toggle("blind-hidden", i > currentIndex));
 }
 
 export function updateActiveSpans(changedIndices, currentText, originalText, caret) {
     const spans = Store.getState().textSpans;
-    for (const i of changedIndices) {
+    changedIndices.forEach(i => {
         const span = spans[i];
-        if (!span) continue;
+        if (!span) return;
         span.classList.remove("current", "correct", "incorrect", "blind-hidden");
         if (i < caret) {
-            if (currentText[i] === originalText[i]) span.classList.add("correct");
-            else span.classList.add("incorrect");
+            span.classList.add(currentText[i] === originalText[i] ? "correct" : "incorrect");
         }
-    }
+    });
     if (spans[caret]) spans[caret].classList.add("current");
 }

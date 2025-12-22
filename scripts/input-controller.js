@@ -1,265 +1,281 @@
-// scripts/input-controller.js
 import { DOM } from "./state.js";
 import { Store } from "./core/store.js";
 import { runTypingEngine } from "./typing-engine.js";
-import { runDictationEngine } from "./dictation-engine.js";
 import { updateActiveSpans, applyBlindMode } from "./renderer.js";
 import { showTooltipForSpan } from "./tooltip.js";
 import { AutoScroller } from "./utils/scroller.js";
 import { EventBus, EVENTS } from "./core/events.js";
 
+const PRELOAD_WINDOW = 5;
 let scroller;
+
+// --- STATE MỚI ---
 let isComposing = false;
+let imeTooltipEl = null;
+let virtualValue = "";
+
+function isPunctuation(str) {
+    // Regex này bao gồm:
+    // 1. Dấu câu ASCII cơ bản: [.,!?;:'"(){}[\]]
+    // 2. Dấu câu CJK (Trung/Nhật/Hàn) và Fullwidth: [\u3000-\u303F\uFF00-\uFFEF]
+    return /^[.,!?;:'"(){}[\]\u3000-\u303F\uFF00-\uFFEF]+$/.test(str);
+}
+
+function isKoreanText(text) {
+    return /[\uAC00-\uD7AF]/.test(text);
+}
+
+// --- TOOLTIP IME (Giữ nguyên) ---
+function getOrCreateImeTooltip() {
+    if (!imeTooltipEl) {
+        imeTooltipEl = document.createElement('div');
+        imeTooltipEl.className = 'ime-tooltip';
+        document.body.appendChild(imeTooltipEl);
+    }
+    return imeTooltipEl;
+}
+
+function updateImeTooltip(text) {
+    const tooltip = getOrCreateImeTooltip();
+    const state = Store.getState();
+    if (!text) {
+        tooltip.classList.remove('visible');
+        return;
+    }
+    tooltip.textContent = text;
+    tooltip.classList.add('visible');
+    const currentSpan = state.textSpans[state.prevIndex || 0];
+    if (currentSpan) {
+        const rect = currentSpan.getBoundingClientRect();
+        const topPos = rect.top - tooltip.offsetHeight - 5;
+        const leftPos = rect.left;
+        tooltip.style.top = `${topPos}px`;
+        tooltip.style.left = `${leftPos}px`;
+    }
+}
+
+function hideImeTooltip() {
+    if (imeTooltipEl) imeTooltipEl.classList.remove('visible');
+}
+
+function syncInputPosition() {
+    const state = Store.getState();
+    const currentSpan = state.textSpans[state.prevIndex || 0];
+    const inputArea = document.querySelector('.input-area');
+    const textarea = DOM.textInput;
+
+    if (currentSpan && inputArea) {
+        const rect = currentSpan.getBoundingClientRect();
+        inputArea.style.top = `${rect.top}px`;
+        inputArea.style.left = `${rect.left}px`;
+        inputArea.style.height = `${rect.height}px`;
+
+        const style = window.getComputedStyle(currentSpan);
+        textarea.style.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        textarea.style.lineHeight = style.lineHeight;
+    }
+}
 
 export function initController() {
     if (!scroller && DOM.textContainer) {
-        scroller = new AutoScroller(DOM.textContainer);
+        scroller = new AutoScroller(DOM.textContainer, () => {
+            syncInputPosition();
+        });
     }
 
-    const el = DOM.textInput;
+    if (DOM.textInput) {
+        DOM.textInput.addEventListener('keydown', (e) => {
+            if (isComposing) return;
 
-    // 1. BẮT ĐẦU GÕ IME
-    el.addEventListener('compositionstart', () => {
-        isComposing = true;
-        updateIMEPosition(); // Cập nhật vị trí ngay khi bắt đầu
-    });
+            if (e.key === 'Backspace') {
+                if (virtualValue.length > 0) {
+                    virtualValue = virtualValue.slice(0, -1);
+                    handleGlobalInput(virtualValue);
+                }
+            }
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                virtualValue += " ";
+                handleGlobalInput(virtualValue);
+            }
+        });
 
-    // 2. CẬP NHẬT PINYIN (Khi gõ n, ni, nih...)
-    el.addEventListener('compositionupdate', (e) => {
-        isComposing = true;
-        // e.data chứa chuỗi Pinyin (ví dụ: "nihao")
-        showIMEPreview(e.data);
-    });
+        DOM.textInput.addEventListener('compositionstart', () => { isComposing = true; });
 
-    // 3. KẾT THÚC IME
-    el.addEventListener('compositionend', (e) => {
-        isComposing = false;
-        hideIMEPreview(); // Ẩn hộp Pinyin
-        handleGlobalInput(Store.getMode());
-    });
+        DOM.textInput.addEventListener('compositionupdate', (e) => {
+            isComposing = true;
+            updateImeTooltip(e.data);
+            syncInputPosition();
+        });
 
-    // 4. INPUT EVENT
-    el.addEventListener('input', (e) => {
-        if (isComposing || e.isComposing) return;
-        handleGlobalInput(Store.getMode());
-    });
-}
+        // --- [SỬA ĐỔI QUAN TRỌNG] ---
+        DOM.textInput.addEventListener('compositionend', (e) => {
+            isComposing = false;
+            hideImeTooltip();
 
-// --- CÁC HÀM HỖ TRỢ VISUAL IME ---
+            const committedText = e.data;
+            let isKo = false; // Cờ đánh dấu tiếng Hàn
 
-function getCaretCoordinates() {
-    // 1. Tìm span hiện tại (con trỏ màu xanh/đỏ) hoặc span đầu tiên
-    let currentSpan = DOM.textDisplay.querySelector('.current');
+            if (committedText) {
+                virtualValue += committedText;
+                isKo = isKoreanText(committedText);
 
-    // Fallback: Nếu chưa bắt đầu gõ, lấy span đầu tiên
-    if (!currentSpan) {
-        currentSpan = DOM.textDisplay.querySelector('span');
-    }
+                // LOGIC PHÂN LUỒNG:
+                // 1. Nếu là Tiếng Hàn: KHÔNG phát âm ở đây (để Engine lo giống tiếng Anh)
+                // 2. Nếu là Tiếng Trung: Phát âm ngay lập tức
+                // 3. Check dấu câu
+                if (!isKo && !isPunctuation(committedText)) {
+                    EventBus.emit(EVENTS.INPUT_NEW_WORD, { word: committedText });
+                }
+            }
 
-    if (currentSpan) {
-        const spanRect = currentSpan.getBoundingClientRect();
-        const containerRect = DOM.textContainer.getBoundingClientRect();
+            DOM.textInput.value = "";
 
-        // Tính toán tọa độ tương đối trong container
-        // scrollLeft/Top cần được cộng vào để tính đúng khi cuộn
-        return {
-            left: spanRect.left - containerRect.left + DOM.textContainer.scrollLeft,
-            top: spanRect.top - containerRect.top + DOM.textContainer.scrollTop,
-            bottom: spanRect.bottom - containerRect.top + DOM.textContainer.scrollTop,
-            height: spanRect.height,
-            width: spanRect.width,
-            // Trả về rect gốc để dùng tính toán va chạm
-            rect: spanRect,
-            containerRect: containerRect
-        };
-    }
+            // Tham số thứ 2 của handleGlobalInput là 'suppressEngineAudio' (Chặn Engine)
+            // - Nếu là Tiếng Hàn (isKo = true) -> Truyền FALSE -> Để Engine tự phát âm.
+            // - Nếu là Tiếng Trung (isKo = false) -> Truyền TRUE -> Chặn Engine (vì đã phát ở trên rồi).
+            handleGlobalInput(virtualValue, !isKo);
 
-    // Default fallback
-    return { left: 0, top: 0, bottom: 20, height: 20, width: 0 };
-}
+            requestAnimationFrame(syncInputPosition);
+        });
 
-// Di chuyển Input ẩn (để Candidate Window của OS hiện đúng chỗ)
-function updateIMEPosition() {
-    const coords = getCaretCoordinates();
-    const el = DOM.textInput;
+        DOM.textInput.addEventListener('input', (e) => {
+            if (isComposing) return;
 
-    // Đặt input ẩn đè lên ngay chữ đang gõ
-    el.style.top = `${coords.top}px`;
-    el.style.left = `${coords.left}px`;
-    el.style.height = `${coords.height}px`; // Khớp chiều cao dòng
+            if (e.inputType === 'insertText' || e.inputType === 'insertFromPaste') {
+                const char = e.data || DOM.textInput.value;
+                if (char) {
+                    virtualValue += char;
+                    handleGlobalInput(virtualValue);
+                }
+                DOM.textInput.value = "";
+            }
+        });
 
-    return coords;
-}
+        DOM.textContainer.addEventListener('click', () => {
+            DOM.textInput.focus();
+            setTimeout(syncInputPosition, 0);
+        });
 
-function showIMEPreview(text) {
-    const preview = DOM.imePreview;
-    if (!preview || !text) return;
+        DOM.textContainer.addEventListener('scroll', () => {
+            requestAnimationFrame(syncInputPosition);
+        });
 
-    // 1. Hiển thị trước để trình duyệt tính toán kích thước (width/height)
-    preview.textContent = text;
-    preview.classList.remove('hidden');
-
-    // 2. Lấy tọa độ
-    const coords = updateIMEPosition();
-    const previewWidth = preview.offsetWidth;
-    const previewHeight = preview.offsetHeight;
-    const containerWidth = DOM.textContainer.clientWidth;
-
-    // --- TÍNH TOÁN VỊ TRÍ --- //
-
-    // Mặc định: Nằm TRÊN con trỏ (cách 10px)
-    let top = coords.top - previewHeight - 12;
-    let left = coords.left;
-    let isFlipped = false;
-
-    // CHECK 1: TRÀN TRÊN (Top Overflow)
-    // Nếu gõ dòng đầu, hộp bị khuất -> Đẩy xuống DƯỚI con trỏ
-    // (Kiểm tra so với scrollTop của container)
-    if (top < DOM.textContainer.scrollTop) {
-        top = coords.bottom + 12; // Nằm dưới dòng chữ
-        isFlipped = true;
-    }
-
-    // CHECK 2: TRÀN PHẢI (Right Overflow)
-    // Nếu gõ sát lề phải, hộp bị khuất -> Đẩy lùi sang trái
-    if (left + previewWidth > containerWidth + DOM.textContainer.scrollLeft) {
-        left = (containerWidth + DOM.textContainer.scrollLeft) - previewWidth - 10;
-
-        // (Tùy chọn) Nếu muốn mũi tên chỉ đúng chữ, ta cần chỉnh CSS mũi tên động.
-        // Nhưng ở mức đơn giản, chỉ cần hộp không bị che là được.
-    }
-
-    // --- ÁP DỤNG --- //
-    preview.style.top = `${top}px`;
-    preview.style.left = `${left}px`;
-
-    // Đảo chiều mũi tên nếu hộp nằm dưới
-    if (isFlipped) {
-        preview.classList.add('flipped');
-    } else {
-        preview.classList.remove('flipped');
+        window.addEventListener('resize', syncInputPosition);
     }
 }
-
-function hideIMEPreview() {
-    const preview = DOM.imePreview;
-    if (preview) {
-        preview.classList.add('hidden');
-        preview.textContent = "";
-    }
-}
-
-// ------------------------------------
 
 export function getScroller() { return scroller; }
+
 export function resetController() {
-    if (scroller) scroller.reset();
+    scroller?.reset();
     isComposing = false;
+    hideImeTooltip();
+
+    virtualValue = "";
     if (DOM.textInput) DOM.textInput.value = "";
-    hideIMEPreview();
+
+    setTimeout(syncInputPosition, 50);
 }
 
-// ... (Giữ nguyên các hàm helper khác: triggerPreload, getCurrentWordIndex...) ...
-function triggerPreload(currentIndex) { /* ...giữ nguyên... */ }
-function getCurrentWordIndex(caret, wordStarts, wordTokens) { /* ...giữ nguyên... */ }
-function forceCaretToEnd(el) { /* ...giữ nguyên... */ }
+function findSegmentIndex(caret, charStarts) {
+    if (!charStarts || !charStarts.length) return 0;
+    for (let i = charStarts.length - 1; i >= 0; i--) {
+        if (caret >= charStarts[i]) return i;
+    }
+    return 0;
+}
 
+// --- [SỬA ĐỔI SIGNATURE HÀM] ---
+// Thêm tham số suppressEngineAudio (mặc định false)
+export function handleGlobalInput(overrideText = null, suppressEngineAudio = false) {
+    let rawInput = (overrideText !== null) ? overrideText : virtualValue;
+    const currentText = rawInput.replace(/\n/g, " ");
 
-export function handleGlobalInput(mode) {
-    if (isComposing) return;
-
-    const el = DOM.textInput;
-
-    // Cập nhật vị trí Input ẩn mỗi khi gõ xong 1 từ để chuẩn bị cho từ tiếp theo
-    // Điều này đảm bảo khi bắt đầu gõ từ mới, IME hiện đúng chỗ ngay lập tức
-    requestAnimationFrame(updateIMEPosition);
-
-    let val = el.value;
     const state = Store.getState();
-    const originalText = state.source.text;
+    const source = Store.getSource();
+    const originalText = source.text;
 
-    // 1. Enter -> Space
-    if (val.includes("\n")) {
-        val = val.replace(/\n/g, " ");
-        el.value = val;
+    let finalText = currentText;
+    if (finalText.length > originalText.length) {
+        finalText = finalText.slice(0, originalText.length);
+        if (overrideText === null) virtualValue = finalText;
     }
 
-    // 2. Cắt độ dài
-    if (val.length > originalText.length) {
-        val = val.slice(0, originalText.length);
-        el.value = val;
+    const isDeleting = finalText.length < state.prevInputLen;
+
+    if (!state.isActive && finalText.length > 0) {
+        EventBus.emit(EVENTS.EXERCISE_START);
+        document.dispatchEvent(new CustomEvent("timer:start"));
+        Store.startExercise();
+        Store.setPrevInputLen(0);
+        if (DOM.actionToggle) DOM.actionToggle.checked = true;
+        const tokens = state.wordTokens;
+        if (tokens.length) EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(0, PRELOAD_WINDOW));
     }
 
-    const currentText = val;
-    forceCaretToEnd(el);
+    const { caret, changed, newWord, isComplete } = runTypingEngine(finalText);
 
-    // Auto Start
-    if (!state.isActive) {
-        if (mode === "typing") {
-            EventBus.emit(EVENTS.EXERCISE_START);
-            document.dispatchEvent(new CustomEvent("timer:start"));
-            Store.startExercise();
-            Store.setPrevInputLen(0);
-            if (DOM.actionToggle) DOM.actionToggle.checked = true;
-        } else {
-            el.value = ""; return;
+    const oldSegIdx = source.currentSegment;
+    const newSegIdx = findSegmentIndex(caret, source.charStarts);
+    if (newSegIdx !== oldSegIdx) {
+        Store.setCurrentSegment(newSegIdx);
+        if (Store.isAudio() && !isDeleting && newSegIdx > oldSegIdx) {
+            EventBus.emit(EVENTS.DICTATION_SEGMENT_CHANGE, newSegIdx);
         }
     }
 
-    // ... (Phần logic Engine, UI Updates, Stats giữ nguyên như cũ) ...
-    const isDeleting = val.length < state.prevInputLen;
-    const oldSegIdx = Store.getSource().currentSegment;
-
-    const engineResult = mode === "dictation"
-        ? runDictationEngine(currentText)
-        : runTypingEngine(currentText);
-
-    const { caret, changed, newWord, isComplete } = engineResult;
-
-    updateActiveSpans(changed, currentText, originalText, caret);
+    updateActiveSpans(changed, finalText, originalText, caret);
     if (state.blindMode) applyBlindMode(caret);
 
     const currentSpan = state.textSpans[caret];
-    if (currentSpan && DOM.autoTooltipToggle?.checked) showTooltipForSpan(currentSpan);
-
-    Store.setPrevIndex(caret);
-    if (scroller && currentSpan) scroller.scrollTo(currentSpan);
-
-    if (mode === "dictation") {
-        const newSegIdx = engineResult.segmentIndex;
-        if (newSegIdx !== oldSegIdx) {
-            Store.setCurrentSegment(newSegIdx);
-            if (!isDeleting && newSegIdx > oldSegIdx) {
-                EventBus.emit(EVENTS.DICTATION_SEGMENT_CHANGE, newSegIdx);
-            }
-        }
-        if (engineResult.segmentDone) {
-            document.dispatchEvent(new CustomEvent("dictation:segmentDone", { detail: engineResult.segmentIndex }));
-            EventBus.emit(EVENTS.DICTATION_SEGMENT_DONE, engineResult.segmentIndex);
-        }
+    if (currentSpan && DOM.autoTooltipToggle?.checked) {
+        showTooltipForSpan(currentSpan);
     }
 
-    const currentLen = currentText.length;
-    let isCorrect = currentLen > 0 ? currentText[currentLen - 1] === originalText[currentLen - 1] : false;
+    Store.setPrevIndex(caret);
+    scroller?.scrollTo(currentSpan);
+
+    syncInputPosition();
+
+    const currentLen = finalText.length;
+    const isCorrect = currentLen > 0 &&
+        currentLen <= originalText.length &&
+        finalText[currentLen - 1] === originalText[currentLen - 1];
 
     EventBus.emit(EVENTS.INPUT_CHANGE, {
-        currentText, originalText, caret, currentLen,
-        prevInputLen: state.prevInputLen, isCorrect
+        currentText: finalText,
+        originalText,
+        caret,
+        currentLen,
+        prevInputLen: state.prevInputLen,
+        isCorrect
     });
+
     Store.setPrevInputLen(currentLen);
 
-    if (newWord && !isDeleting) {
-        EventBus.emit(EVENTS.INPUT_NEW_WORD, { word: newWord, currentText, originalText });
-        const currentIdx = getCurrentWordIndex(caret, state.wordStarts, state.wordTokens);
-        triggerPreload(currentIdx);
+    // --- [LOGIC PHÁT ÂM ENGINE] ---
+    // Chỉ phát âm từ Engine tìm thấy nếu KHÔNG bị chặn bởi IME
+    if (newWord && !isDeleting && !suppressEngineAudio) {
+        EventBus.emit(EVENTS.INPUT_NEW_WORD, { word: newWord });
+        const nextIdx = findSegmentIndex(caret, state.wordStarts) + 1;
+        const tokens = state.wordTokens;
+        if (nextIdx < tokens.length) EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(nextIdx, nextIdx + PRELOAD_WINDOW));
+    }
+    // Nếu bị chặn (suppressEngineAudio = true) thì ta vẫn preload audio tiếp theo cho mượt
+    else if (suppressEngineAudio) {
+        const nextIdx = findSegmentIndex(caret, state.wordStarts) + 1;
+        const tokens = state.wordTokens;
+        if (nextIdx < tokens.length) EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(nextIdx, nextIdx + PRELOAD_WINDOW));
     }
 
     if (isComplete) {
-        el.disabled = true;
+        if (DOM.textInput) DOM.textInput.disabled = true;
         EventBus.emit(EVENTS.EXERCISE_COMPLETE);
         document.dispatchEvent(new CustomEvent("timer:stop"));
         setTimeout(() => {
-            alert(`🎉 Hoàn thành!\nAcc: ${DOM.accuracyEl.textContent}`);
-        }, 100);
+            if (DOM.resultModal) DOM.resultModal.classList.remove("hidden");
+            else alert("🎉 Hoàn thành!");
+        }, 300);
     }
 }

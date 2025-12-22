@@ -1,0 +1,74 @@
+/* --- START OF FILE styles.css --- */
+
+/* ==========================================================================
+   1. VARIABLES & THEME CONFIGURATION
+   ========================================================================== */
+
+:root {
+    /* [MODIFIED] Thêm font tiếng Trung vào danh sách ưu tiên */
+    --font-ui: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'Segoe UI', Tahoma, sans-serif;
+    --font-mono: 'Microsoft YaHei', 'PingFang SC', 'PT Mono', 'Consolas', monospace;
+
+    /* Colors - Light Theme (Default) */
+    --bg-primary: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    --container-bg: rgba(255, 255, 255, 0.96);
+    --header-bg: linear-gradient(to right, #4a00e0, #8e2de2);
+
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-light: #fff;
+    --text-muted: #888;
+
+    --accent-color: #4a00e0;
+    --accent-gradient: linear-gradient(to right, #4a00e0, #8e2de2);
+
+    --correct-color: #28a745;
+    --incorrect-color: #e74c3c;
+    /* Giảm độ đậm nền đỏ để đỡ rối mắt với chữ Hán dày đặc */
+    --incorrect-bg: rgba(231, 76, 60, 0.1); 
+
+    --section-bg: #f8f9fa;
+    --border-color: #e9ecef;
+    --shadow-color: rgba(0, 0, 0, 0.15);
+
+    --toggle-bg: #dfe6e9;
+    --toggle-checked-bg: #4a00e0;
+}
+
+/* ... (Giữ nguyên phần Theme Variations và Global Reset) ... */
+
+/* [MODIFIED] Cập nhật Text Display cho thoáng hơn */
+.text-display {
+    padding: 30px;
+    line-height: 2.0; /* Tiếng Trung cần dòng thoáng hơn (cũ là 1.8) */
+    font-size: 1.4rem; /* Chữ Hán cần to hơn chữ Latin một chút */
+    font-family: var(--font-mono); /* Dùng font mono/YaHei để thẳng hàng */
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-align: justify; /* Canh đều 2 bên nhìn sẽ đẹp hơn cho khối văn bản */
+}
+
+/* ... (Các phần còn lại giữ nguyên, ĐẶC BIỆT LÀ CLASS .input-area ĐÃ FIX Ở BƯỚC 1) ... */
+
+/* Đảm bảo class .input-area bạn đã sửa ở Bước 1 vẫn còn đó */
+.input-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 30px;
+    opacity: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+.input-area textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 0;
+    margin: 0;
+}

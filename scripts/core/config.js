@@ -6,9 +6,8 @@ export const CONFIG = {
     AUDIO_SOURCES: {
         OXFORD: "https://www.oxfordlearnersdictionaries.com/media/english/us_pron/",
         CAMBRIDGE: "https://dictionary.cambridge.org/media/english/us_pron/",
-        // YOUDAO: "https://dict.youdao.com/dictvoice?audio=",
-        YOUDAO: "https://dict.youdao.com/dictvoice?le=zh&audio=",
-        TTS: "https://autumn-sound-09e5.idmbull.workers.dev/?lang=zh&text="
+        YOUDAO: "https://dict.youdao.com/dictvoice?audio=",
+        TTS: "https://autumn-sound-09e5.idmbull.workers.dev/?lang=en&text="
     },
     CLICK_SOUNDS: {
         typewriter: "https://www.edclub.com/m/audio/typewriter.mp3",

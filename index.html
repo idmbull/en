@@ -16,7 +16,6 @@
             <p class="subtitle">Tập trung - Thư giãn - Phát triển</p>
         </header>
 
-        <!-- Stats Bar -->
         <div class="stats">
             <div class="stat-item">
                 <div class="stat-value" id="accuracy">100%</div>
@@ -36,24 +35,12 @@
             </div>
         </div>
 
-        <!-- Text Display -->
         <div class="text-display-container" id="textContainer">
             <div class="text-display" id="textDisplay">Loading...</div>
-
-            <!-- THÊM DÒNG NÀY: Hộp hiển thị Pinyin -->
-            <div id="imePreview" class="ime-preview hidden"></div>
         </div>
 
-
-        <!-- Hidden Input -->
-        <div class="input-area">
-            <textarea id="textInput"></textarea>
-        </div>
-
-        <!-- TOOLBAR -->
         <div class="toolbar">
             <div class="toolbar-left settings-group">
-                <!-- Trong file index.html, thay thế đoạn Toggle Dark/Light bằng đoạn này -->
                 <div class="toggle-container" title="Chọn giao diện">
                     <select id="themeSelect" style="width: 110px; padding: 4px 8px;">
                         <option value="light">Default</option>
@@ -73,7 +60,6 @@
                     </label>
                     <span>Sound</span>
                 </div>
-
                 <div class="toggle-container" title="Phát âm từ vựng">
                     <label class="toggle-switch">
                         <input type="checkbox" id="autoPronounceToggle" checked>
@@ -81,7 +67,6 @@
                     </label>
                     <span>Speak</span>
                 </div>
-
                 <div class="toggle-container" title="Chế độ không nhìn">
                     <label class="toggle-switch">
                         <input type="checkbox" id="blindModeToggle">
@@ -89,7 +74,6 @@
                     </label>
                     <span>Blind</span>
                 </div>
-
                 <div class="toggle-container" title="Hiện chú thích">
                     <label class="toggle-switch">
                         <input type="checkbox" id="autoTooltipToggle" checked>
@@ -97,13 +81,9 @@
                     </label>
                     <span>Tooltip</span>
                 </div>
-
-                <!-- Dictation Volume (Hidden by default in Reading) -->
                 <div class="mini-volume-control hidden" id="volumeControl" title="Âm lượng đọc">
                     <input type="range" id="dictationVolume" min="0" max="5" step="0.1" value="2.5">
                 </div>
-
-                <!-- ACTION TOGGLE -->
                 <div class="toggle-container" title="Bắt đầu / Dừng bài tập" style="margin-left: auto;">
                     <label class="toggle-switch">
                         <input type="checkbox" id="actionToggle">
@@ -111,68 +91,51 @@
                     </label>
                     <span id="actionLabel" style="font-size: 0.9rem; margin-right: 8px;">Start</span>
                 </div>
-
-                <!-- Replay Button (Dictation only) -->
                 <button id="dictationReplayBtn" class="btn-icon hidden" title="Nghe lại đoạn này">↺</button>
             </div>
         </div>
 
         <footer>
-            <!-- Input file ẩn (giữ nguyên) -->
             <input type="file" id="fileLoader" accept=".txt,.md,.json,.tsv,.mp3" hidden multiple>
             <button id="fileLoaderBtn" class="btn-icon">📂 Load</button>
 
-            <!-- THAY THẾ SELECT CŨ BẰNG ĐOẠN NÀY -->
             <div class="custom-dropdown" id="playlistDropdown">
                 <div class="dropdown-trigger" id="playlistTrigger">
                     <span>Chọn bài tập...</span>
                     <span class="arrow">▼</span>
                 </div>
-                <!-- Menu cây thư mục sẽ được render vào đây -->
                 <div class="dropdown-content hidden" id="playlistContent"></div>
             </div>
-            <!-- Input ẩn để code JS cũ vẫn đọc được giá trị nếu cần -->
             <input type="hidden" id="playlist" value="">
-            <!-- KẾT THÚC PHẦN THAY THẾ -->
-
-            <span style="opacity: 0.5">/</span>
-
-            <!-- Difficulty Select (Reading) -->
-            <select id="difficulty"></select>
-
-            <!-- Mode Switch Button -->
-            <button id="modeSwitchBtn" class="btn-icon" style="margin-left: auto; border-color: var(--accent-color);">
-                🎧 Go to Dictation
-            </button>
         </footer>
     </div>
 
-    <!-- DICTATION MODAL (Hidden by default) -->
+
+    <div class="input-area">
+        <textarea id="textInput" spellcheck="false" autocomplete="off"></textarea>
+    </div>
+
     <div id="dictationModal" class="modal hidden">
         <div class="modal-content" style="padding: 30px; width: 400px; text-align: center;">
             <h2 style="margin-bottom: 20px;">Upload Dictation</h2>
-
             <div style="text-align: left; margin-bottom: 15px;">
                 <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">1.
                     Subtitle (.txt/tsv)</label>
                 <input type="file" id="dictationSubInput" accept=".txt,.tsv"
                     style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
             </div>
-
             <div style="text-align: left; margin-bottom: 20px;">
                 <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">2. Audio
                     (.mp3)</label>
                 <input type="file" id="dictationAudioInput" accept="audio/*"
                     style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
             </div>
-
             <div style="margin-bottom: 20px; text-align: left;">
                 <label class="toggle-container">
                     <input type="checkbox" id="dictationBlindMode" style="margin-right: 8px;">
                     Blind Mode for Dictation
                 </label>
             </div>
-
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button id="dictationCancelBtn" class="btn-icon">Cancel</button>
                 <button id="dictationStartBtn" class="btn-icon"
@@ -181,12 +144,38 @@
             </div>
         </div>
     </div>
-
+    <!-- Thêm vào index.html, sau div #dictationModal -->
+    <div id="resultModal" class="modal hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color: var(--accent-color); margin-bottom: 10px;">🎉 Hoàn thành!</h2>
+            <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                <div class="stat-box">
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">Accuracy</div>
+                    <div id="resAcc" style="font-size: 2rem; font-weight: bold; color: var(--correct-color);">0%</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">WPM</div>
+                    <div id="resWpm" style="font-size: 2rem; font-weight: bold; color: var(--accent-color);">0</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">Time</div>
+                    <div id="resTime" style="font-size: 1.5rem; font-weight: 600;">0s</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">Errors</div>
+                    <div id="resErr" style="font-size: 1.5rem; font-weight: 600; color: var(--incorrect-color);">0</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="btnReplay" class="btn-icon">↺ Luyện lại</button>
+                <button id="btnNext" class="btn-icon"
+                    style="background: var(--accent-gradient); color: white; border: none;">Bài tiếp theo ➔</button>
+            </div>
+        </div>
+    </div>
     <div id="globalTooltip"></div>
     <audio id="player" class="hidden"></audio>
-
-    <!-- MAIN SCRIPT -->
-    <script type="module" src="scripts/main.js"></script>
+    <script type="module" src="scripts/app.js"></script>
 </body>
 
 </html>

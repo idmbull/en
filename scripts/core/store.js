@@ -1,27 +1,21 @@
 // scripts/core/store.js
 
 const INITIAL_STATE = {
-    mode: "reading", // 'reading' | 'dictation'
     isActive: false,
+    isAudioMode: false, // Tự động bật khi bài tập có audio
     blindMode: false,
-    
-    // Dữ liệu bài tập (Source Code)
     source: {
-        text: "",          // Logic text
-        html: "",          // HTML hiển thị
-        segments: [],      // Cho Dictation
-        charStarts: [],    // Mapping vị trí
-        currentSegment: 0, 
-        audioUrl: null,
-        hasAudio: false
+        title: "",
+        text: "",
+        html: "",
+        segments: [],
+        charStarts: [],
+        currentSegment: 0,
+        audioUrl: null
     },
-
-    // Metadata hiển thị (Do Renderer tính toán)
-    textSpans: [],     
+    textSpans: [],
     wordTokens: [],
     wordStarts: [],
-    
-    // Runtime Stats
     startTime: null,
     statTotalKeys: 0,
     statCorrectKeys: 0,
@@ -30,59 +24,41 @@ const INITIAL_STATE = {
     prevIndex: 0
 };
 
-// State Container (Private)
 let state = JSON.parse(JSON.stringify(INITIAL_STATE));
 
 export const Store = {
-    // --- GETTERS ---
     getState: () => state,
     getSource: () => state.source,
-    
-    // [FIX] Thêm 2 hàm này
-    getMode: () => state.mode,
+
+    // Logic: Nếu có file audio hoặc có segments (timestamp) -> Là Audio Mode
+    isAudio: () => state.isAudioMode,
     isBlind: () => state.blindMode,
-    
-    // --- ACTIONS ---
 
-    setMode(mode) {
-        state.mode = mode;
+    setSourceUnified(data, hasAudio, audioUrl) {
+        this.reset(); // Reset trước khi nạp mới
+        state.isAudioMode = hasAudio || (data.segments && data.segments.length > 0);
+        state.source = { ...data, audioUrl, currentSegment: 0 };
+
+        // Emit event để UI cập nhật (hiện/ẩn volume controller)
+        document.dispatchEvent(new CustomEvent("store:source-changed", {
+            detail: { hasAudio: state.isAudioMode }
+        }));
     },
 
-    setBlindMode(isEnabled) {
-        state.blindMode = isEnabled;
-    },
+    setBlindMode(isEnabled) { state.blindMode = isEnabled; },
 
-    /**
-     * Set dữ liệu bài tập mới
-     */
-    setSource(data) {
-        state.source = {
-            ...state.source,
-            ...data,
-            currentSegment: 0 
-        };
-        // Clear metadata cũ
-        state.textSpans = [];
-        state.wordTokens = [];
-        state.wordStarts = [];
-    },
-
-    /**
-     * Reset trạng thái runtime (Timer, Stats, Input Pointer)
-     * KHÔNG XÓA source text.
-     */
     reset() {
         state.isActive = false;
         state.startTime = null;
-        
         state.statTotalKeys = 0;
         state.statCorrectKeys = 0;
         state.statErrors = 0;
         state.prevInputLen = 0;
         state.prevIndex = 0;
-        
-        // Reset pointer dictation về đầu
         state.source.currentSegment = 0;
+        state.textSpans = [];
+        state.wordTokens = [];
+        state.wordStarts = [];
     },
 
     startExercise() {
@@ -94,28 +70,14 @@ export const Store = {
         state.isActive = false;
     },
 
-    // --- Metadata Setters ---
-    setSpans(spans) {
-        state.textSpans = spans;
-    },
-    
+    setSpans(spans) { state.textSpans = spans; },
     setWordMetadata(tokens, starts) {
         state.wordTokens = tokens;
         state.wordStarts = starts;
     },
-
-    // --- Updates ---
-    setCurrentSegment(index) {
-        state.source.currentSegment = index;
-    },
-
-    setPrevIndex(index) {
-        state.prevIndex = index;
-    },
-    
-    setPrevInputLen(len) {
-        state.prevInputLen = len;
-    },
+    setCurrentSegment(index) { state.source.currentSegment = index; },
+    setPrevIndex(index) { state.prevIndex = index; },
+    setPrevInputLen(len) { state.prevInputLen = len; },
 
     addStats(isCorrect) {
         state.statTotalKeys++;

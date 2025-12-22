@@ -34,7 +34,6 @@ export const DOM = {
     get fileLoaderBtn() { return $('#fileLoaderBtn'); },
     get playlistSelect() { return $('#playlist'); },
     get playlistTrigger() { return $('#playlistTrigger'); },
-    get difficultySelect() { return $('#difficulty'); },
     get modeSwitchBtn() { return $('#modeSwitchBtn'); },
 
     // Stats
@@ -56,5 +55,11 @@ export const DOM = {
     get dictationStartBtn() { return $('#dictationStartBtn'); },
     get dictationCancelBtn() { return $('#dictationCancelBtn'); },
     get dictationReplayBtn() { return $('#dictationReplayBtn'); },
-    get imePreview() { return $('#imePreview'); },
+    get resultModal() { return $('#resultModal'); },
+    get resAcc() { return $('#resAcc'); },
+    get resWpm() { return $('#resWpm'); },
+    get resTime() { return $('#resTime'); },
+    get resErr() { return $('#resErr'); },
+    get btnReplay() { return $('#btnReplay'); },
+    get btnNext() { return $('#btnNext'); },
 };
