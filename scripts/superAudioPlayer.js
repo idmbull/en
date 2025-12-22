@@ -37,6 +37,11 @@ export class SuperAudioPlayer {
         }
     }
 
+    clear() {
+        this.stop();
+        this.buffer = null; // Xóa dữ liệu âm thanh khỏi bộ nhớ
+    }
+
     playSegment(startSec, endSec) {
         if (!this.buffer || !this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();

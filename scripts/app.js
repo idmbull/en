@@ -23,15 +23,23 @@ async function setupAudioForContent() {
             try {
                 const resp = await fetch(source.audioUrl);
                 if (resp.ok) await superPlayer.load(await resp.arrayBuffer());
+                else superPlayer.clear(); // [FIX] Link lỗi -> Clear
             } catch (e) {
-                alert(`Không tải được file âm thanh: ${source.audioUrl}`);
+                console.error(e);
+                superPlayer.clear(); // [FIX] Lỗi mạng -> Clear
             }
+        } else {
+            // Trường hợp user upload (đã xử lý ở trên) hoặc lỗi logic
+            // Nếu không có URL và buffer chưa được nạp thủ công -> nên clear?
+            // (Đoạn này giữ nguyên vì logic user upload đã nạp buffer rồi)
         }
     } else {
         DOM.volumeControl.classList.add("hidden");
         if (DOM.dictationReplayBtn) DOM.dictationReplayBtn.classList.add("hidden");
         DOM.headerSubtitle.textContent = "Tập trung - Thư giãn - Phát triển";
-        superPlayer.stop();
+
+        // [FIX] Bài đọc hiểu (không audio) -> Xóa bộ nhớ audio
+        superPlayer.clear();
     }
 }
 
@@ -69,6 +77,18 @@ export async function initApp() {
         superPlayer.setVolume(parseFloat(DOM.volumeInput.value));
         DOM.volumeInput.oninput = (e) => superPlayer.setVolume(parseFloat(e.target.value));
     }
+
+    EventBus.on(EVENTS.EXERCISE_START, () => {
+        // 1. Đánh thức AudioContext (Bắt buộc bởi trình duyệt)
+        if (superPlayer.ctx?.state === 'suspended') {
+            superPlayer.ctx.resume();
+        }
+
+        // 2. Nếu là bài tập Audio -> Phát segment hiện tại
+        if (Store.isAudio()) {
+            playCurrentSegment();
+        }
+    });
 
     document.addEventListener("app:content-loaded", async () => {
         const source = Store.getSource();
@@ -136,7 +156,6 @@ export async function initApp() {
         },
         onActionStart: () => {
             if (superPlayer.ctx?.state === 'suspended') superPlayer.ctx.resume();
-            if (Store.isAudio()) playCurrentSegment();
         },
         onCtrlSpaceSingle: () => Store.isAudio() ? playCurrentSegment() : replayLastWord(),
         onCtrlSpaceDouble: () => replayLastWord()
@@ -174,21 +193,31 @@ function setupDictationModal() {
 
             const reader = new FileReader();
             reader.onload = async (e) => {
+                // 1. Load nội dung Text
                 await loadUserContent(e.target.result, subFile.name);
                 let hasAudio = false;
 
+                // 2. Xử lý Audio
                 if (audioFile) {
                     try {
                         await superPlayer.load(await audioFile.arrayBuffer());
                         hasAudio = true;
                     } catch {
                         alert("File audio lỗi.");
+                        superPlayer.clear(); // Lỗi thì cũng clear luôn cho an toàn
                     }
                 } else {
-                    superPlayer.stop();
+                    // [FIX] Nếu không có file audio -> Xóa sạch bộ nhớ cũ
+                    superPlayer.clear();
+                    hasAudio = false;
                 }
 
+                // 3. Cập nhật Store
+                // Lưu ý: Dù hasAudio = false, nhưng nếu file text có timestamps (segments),
+                // Store vẫn có thể coi là AudioMode. Nhưng nhờ superPlayer.buffer = null
+                // nên nó sẽ im lặng thay vì phát bài cũ.
                 Store.setSourceUnified(Store.getSource(), hasAudio, null);
+
                 document.dispatchEvent(new CustomEvent("app:content-loaded"));
 
                 dictationBtn.innerHTML = `${hasAudio ? "🎧" : "📄"} ${subFile.name}`;
