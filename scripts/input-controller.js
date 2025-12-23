@@ -205,8 +205,9 @@ export function handleGlobalInput(overrideText = null, suppressEngineAudio = fal
     }
 
     const isDeleting = finalText.length < state.prevInputLen;
+    const isJustFinished = (finalText.length === originalText.length && finalText === originalText);
 
-    if (!state.isActive && finalText.length > 0) {
+    if (!state.isActive && finalText.length > 0 && (!isJustFinished || !state.startTime)) {
         EventBus.emit(EVENTS.EXERCISE_START);
         document.dispatchEvent(new CustomEvent("timer:start"));
         Store.startExercise();

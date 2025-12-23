@@ -50,16 +50,24 @@ export const Store = {
     reset() {
         state.isActive = false;
         state.startTime = null;
+
+        // [FIX] Bổ sung dòng này để xóa thời gian kết thúc cũ
+        state.endTime = null;
+
         state.statTotalKeys = 0;
         state.statCorrectKeys = 0;
         state.statErrors = 0;
         state.prevInputLen = 0;
         state.prevIndex = 0;
+
+        // Đảm bảo currentSegment reset về 0 (nếu cần thiết, tuỳ logic bài)
         state.source.currentSegment = 0;
+
         state.textSpans = [];
         state.wordTokens = [];
         state.wordStarts = [];
     },
+
 
     startExercise() {
         if (state.isActive) return;
