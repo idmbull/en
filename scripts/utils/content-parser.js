@@ -11,6 +11,7 @@ function cleanText(text) {
         .replace(/[‘’]/g, "'")
         .replace(/[“”]/g, "\"")
         .replace(/[—–]/g, "-")
+        .replace(/ …/g, "...")
         .replace(/…/g, "...")
         .replace(/\u200B/g, "");
 }
@@ -173,4 +174,5 @@ function assembleData(blocks, result) {
     if (result.html.endsWith('<span class="newline-char">↵</span>')) {
         result.html = result.html.slice(0, -'<span class="newline-char">↵</span>'.length);
     }
+
 }
