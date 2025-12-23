@@ -237,15 +237,42 @@ function setupDictationModal() {
 
     setupDragDrop(dictationBtn, (files) => {
         dictationModal.classList.remove("hidden");
+
+        // Tạo 2 container chứa file riêng biệt
         const dtSub = new DataTransfer();
+        const dtAudio = new DataTransfer();
+
         let hasSub = false;
+        let hasAudio = false;
+
         files.forEach(f => {
-            if (/\.(txt|tsv|md)$/.test(f.name.toLowerCase())) { dtSub.items.add(f); hasSub = true; }
+            const name = f.name.toLowerCase();
+
+            // 1. Kiểm tra file nội dung (Text)
+            if (/\.(txt|tsv|md)$/.test(name)) {
+                dtSub.items.add(f);
+                hasSub = true;
+            }
+            // 2. Kiểm tra file âm thanh (Audio) - [BỔ SUNG PHẦN NÀY]
+            else if (/\.(mp3|wav|ogg|m4a)$/.test(name)) {
+                dtAudio.items.add(f);
+                hasAudio = true;
+            }
         });
+
+        // Gán file vào input tương ứng
         if (hasSub) {
             dictationSubInput.files = dtSub.files;
-            checkReady();
         }
+
+        // [BỔ SUNG] Gán file audio vào input audio
+        if (hasAudio) {
+            dictationAudioInput.files = dtAudio.files;
+        }
+
+        // Kiểm tra điều kiện để bật nút Start
+        checkReady();
+
     }, "Drop files here!");
 }
 
