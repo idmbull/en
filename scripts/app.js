@@ -5,7 +5,7 @@ import { displayText } from "./renderer.js";
 import { initController } from "./input-controller.js";
 import { ExerciseController } from "./core/exercise-controller.js";
 import { SuperAudioPlayer } from "./superAudioPlayer.js";
-import { replayLastWord } from "./audio.js";
+import { replayLastWord, enqueueSpeak } from "./audio.js";
 import { EventBus, EVENTS } from "./core/events.js";
 import { setupDragDrop } from "./utils/drag-drop.js";
 
@@ -137,22 +137,40 @@ export async function initApp() {
 
 
     DOM.textDisplay.addEventListener("dblclick", (e) => {
-        if (!Store.isAudio() || e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
+        if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
 
         const charIndex = Store.getState().textSpans.indexOf(e.target);
         if (charIndex === -1) return;
 
-        const s = Store.getSource();
-        let targetSegIdx = 0;
-        for (let i = s.charStarts.length - 1; i >= 0; i--) {
-            if (charIndex >= s.charStarts[i]) {
-                targetSegIdx = i;
-                break;
+        if (Store.isAudio()) {
+            // --- LOGIC CŨ: PHÁT SEGMENT AUDIO (DICTATION) ---
+            const s = Store.getSource();
+            let targetSegIdx = 0;
+            for (let i = s.charStarts.length - 1; i >= 0; i--) {
+                if (charIndex >= s.charStarts[i]) {
+                    targetSegIdx = i;
+                    break;
+                }
+            }
+            Store.setCurrentSegment(targetSegIdx);
+            maxReachedSegment = targetSegIdx;
+            playCurrentSegment();
+        } else {
+            // --- LOGIC MỚI: PHÁT ÂM TỪ ĐƠN (READING MODE) ---
+            const { wordStarts, wordTokens } = Store.getState();
+            for (let i = 0; i < wordStarts.length; i++) {
+                const start = wordStarts[i];
+                const end = start + wordTokens[i].length;
+
+                // Kiểm tra xem ký tự click vào có thuộc phạm vi từ này không
+                if (charIndex >= start && charIndex < end) {
+                    const word = wordTokens[i];
+                    // Phát âm từ đó ngay lập tức (force = true)
+                    enqueueSpeak(word, true);
+                    break;
+                }
             }
         }
-        Store.setCurrentSegment(targetSegIdx);
-        maxReachedSegment = targetSegIdx;
-        playCurrentSegment();
     });
 
     mainController = new ExerciseController("unified", {
