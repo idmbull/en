@@ -11,6 +11,8 @@ import { setupDragDrop } from "./utils/drag-drop.js";
 
 const superPlayer = new SuperAudioPlayer();
 let mainController;
+// [NEW] Biến lưu timer để xử lý phân biệt Click vs Double Click
+let clickTimer = null;
 
 async function setupAudioForContent() {
     const source = Store.getSource();
@@ -23,22 +25,16 @@ async function setupAudioForContent() {
             try {
                 const resp = await fetch(source.audioUrl);
                 if (resp.ok) await superPlayer.load(await resp.arrayBuffer());
-                else superPlayer.clear(); // [FIX] Link lỗi -> Clear
+                else superPlayer.clear();
             } catch (e) {
                 console.error(e);
-                superPlayer.clear(); // [FIX] Lỗi mạng -> Clear
+                superPlayer.clear();
             }
-        } else {
-            // Trường hợp user upload (đã xử lý ở trên) hoặc lỗi logic
-            // Nếu không có URL và buffer chưa được nạp thủ công -> nên clear?
-            // (Đoạn này giữ nguyên vì logic user upload đã nạp buffer rồi)
         }
     } else {
         DOM.volumeControl.classList.add("hidden");
         if (DOM.dictationReplayBtn) DOM.dictationReplayBtn.classList.add("hidden");
         DOM.headerSubtitle.textContent = "Tập trung - Thư giãn - Phát triển";
-
-        // [FIX] Bài đọc hiểu (không audio) -> Xóa bộ nhớ audio
         superPlayer.clear();
     }
 }
@@ -47,11 +43,10 @@ function playNextLesson() {
     const currentActive = document.querySelector('.tree-label.active');
     if (currentActive && currentActive.parentElement) {
         let nextLi = currentActive.parentElement.nextElementSibling;
-        // Tìm file tiếp theo (bỏ qua folder nếu cần - logic đơn giản)
         while (nextLi) {
             const label = nextLi.querySelector('.selectable-file');
             if (label) {
-                label.click(); // Trigger load bài mới
+                label.click();
                 return;
             }
             nextLi = nextLi.nextElementSibling;
@@ -79,20 +74,13 @@ export async function initApp() {
     }
 
     EventBus.on(EVENTS.EXERCISE_COMPLETE, () => {
-        // Dừng mọi âm thanh đang phát hoặc sắp phát
         superPlayer.stop();
-
-        // Nếu cần thiết, có thể suspend context để chắc chắn im lặng
-        // if (superPlayer.ctx) superPlayer.ctx.suspend();
     });
 
     EventBus.on(EVENTS.EXERCISE_START, () => {
-        // 1. Đánh thức AudioContext (Bắt buộc bởi trình duyệt)
         if (superPlayer.ctx?.state === 'suspended') {
             superPlayer.ctx.resume();
         }
-
-        // 2. Nếu là bài tập Audio -> Phát segment hiện tại
         if (Store.isAudio()) {
             playCurrentSegment();
         }
@@ -130,20 +118,59 @@ export async function initApp() {
         };
     }
 
-    // Đóng modal khi click ra ngoài (tùy chọn)
     DOM.resultModal.onclick = (e) => {
         if (e.target === DOM.resultModal) DOM.resultModal.classList.add("hidden");
     };
 
+    // =========================================================
+    // XỬ LÝ CLICK (PHÁT ÂM TỪ) & DOUBLE CLICK (PHÁT SEGMENT)
+    // =========================================================
 
+    // 1. Single Click: Phát âm từ vựng (Có độ trễ để chờ Double Click)
+    DOM.textDisplay.addEventListener("click", (e) => {
+        if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
+        if (window.getSelection().toString().length > 0) return; // Đang bôi đen thì không click
+
+        // Reset timer cũ nếu có (dù ít khi xảy ra)
+        if (clickTimer) clearTimeout(clickTimer);
+
+        // Thiết lập Timer chờ 250ms
+        clickTimer = setTimeout(() => {
+            const charIndex = Store.getState().textSpans.indexOf(e.target);
+            if (charIndex === -1) return;
+
+            // Logic tìm từ và phát âm (TTS/Dictionary)
+            const { wordStarts, wordTokens } = Store.getState();
+            for (let i = 0; i < wordStarts.length; i++) {
+                const start = wordStarts[i];
+                const end = start + wordTokens[i].length;
+
+                if (charIndex >= start && charIndex < end) {
+                    const word = wordTokens[i];
+                    enqueueSpeak(word, true); // Phát âm
+                    break;
+                }
+            }
+
+            clickTimer = null; // Reset timer sau khi chạy xong
+        }, 250); // 250ms là độ trễ tiêu chuẩn cho double click
+    });
+
+    // 2. Double Click: Phát Audio Segment (Nếu có)
     DOM.textDisplay.addEventListener("dblclick", (e) => {
         if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
+
+        // [QUAN TRỌNG] Hủy sự kiện Single Click đang chờ
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+        }
 
         const charIndex = Store.getState().textSpans.indexOf(e.target);
         if (charIndex === -1) return;
 
+        // Chỉ phát Segment nếu đang ở chế độ Audio (Dictation)
         if (Store.isAudio()) {
-            // --- LOGIC CŨ: PHÁT SEGMENT AUDIO (DICTATION) ---
             const s = Store.getSource();
             let targetSegIdx = 0;
             for (let i = s.charStarts.length - 1; i >= 0; i--) {
@@ -155,23 +182,10 @@ export async function initApp() {
             Store.setCurrentSegment(targetSegIdx);
             maxReachedSegment = targetSegIdx;
             playCurrentSegment();
-        } else {
-            // --- LOGIC MỚI: PHÁT ÂM TỪ ĐƠN (READING MODE) ---
-            const { wordStarts, wordTokens } = Store.getState();
-            for (let i = 0; i < wordStarts.length; i++) {
-                const start = wordStarts[i];
-                const end = start + wordTokens[i].length;
-
-                // Kiểm tra xem ký tự click vào có thuộc phạm vi từ này không
-                if (charIndex >= start && charIndex < end) {
-                    const word = wordTokens[i];
-                    // Phát âm từ đó ngay lập tức (force = true)
-                    enqueueSpeak(word, true);
-                    break;
-                }
-            }
         }
     });
+
+    // =========================================================
 
     mainController = new ExerciseController("unified", {
         onReset: () => {
@@ -219,33 +233,24 @@ function setupDictationModal() {
 
             const reader = new FileReader();
             reader.onload = async (e) => {
-                // 1. Load nội dung Text
                 await loadUserContent(e.target.result, subFile.name);
                 let hasAudio = false;
 
-                // 2. Xử lý Audio
                 if (audioFile) {
                     try {
                         await superPlayer.load(await audioFile.arrayBuffer());
                         hasAudio = true;
                     } catch {
                         alert("File audio lỗi.");
-                        superPlayer.clear(); // Lỗi thì cũng clear luôn cho an toàn
+                        superPlayer.clear();
                     }
                 } else {
-                    // [FIX] Nếu không có file audio -> Xóa sạch bộ nhớ cũ
                     superPlayer.clear();
                     hasAudio = false;
                 }
 
-                // 3. Cập nhật Store
-                // Lưu ý: Dù hasAudio = false, nhưng nếu file text có timestamps (segments),
-                // Store vẫn có thể coi là AudioMode. Nhưng nhờ superPlayer.buffer = null
-                // nên nó sẽ im lặng thay vì phát bài cũ.
                 Store.setSourceUnified(Store.getSource(), hasAudio, null);
-
                 document.dispatchEvent(new CustomEvent("app:content-loaded"));
-
                 dictationBtn.innerHTML = `${hasAudio ? "🎧" : "📄"} ${subFile.name}`;
                 dictationModal.classList.add("hidden");
             };
@@ -255,40 +260,25 @@ function setupDictationModal() {
 
     setupDragDrop(dictationBtn, (files) => {
         dictationModal.classList.remove("hidden");
-
-        // Tạo 2 container chứa file riêng biệt
         const dtSub = new DataTransfer();
         const dtAudio = new DataTransfer();
-
         let hasSub = false;
         let hasAudio = false;
 
         files.forEach(f => {
             const name = f.name.toLowerCase();
-
-            // 1. Kiểm tra file nội dung (Text)
             if (/\.(txt|tsv|md)$/.test(name)) {
                 dtSub.items.add(f);
                 hasSub = true;
             }
-            // 2. Kiểm tra file âm thanh (Audio) - [BỔ SUNG PHẦN NÀY]
             else if (/\.(mp3|wav|ogg|m4a)$/.test(name)) {
                 dtAudio.items.add(f);
                 hasAudio = true;
             }
         });
 
-        // Gán file vào input tương ứng
-        if (hasSub) {
-            dictationSubInput.files = dtSub.files;
-        }
-
-        // [BỔ SUNG] Gán file audio vào input audio
-        if (hasAudio) {
-            dictationAudioInput.files = dtAudio.files;
-        }
-
-        // Kiểm tra điều kiện để bật nút Start
+        if (hasSub) dictationSubInput.files = dtSub.files;
+        if (hasAudio) dictationAudioInput.files = dtAudio.files;
         checkReady();
 
     }, "Drop files here!");
