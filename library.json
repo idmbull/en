@@ -3,6 +3,11 @@
     "name": "4000 Essential English Words",
     "items": [
       {
+        "name": "How the Sun and the Moon Were Made.md",
+        "path": "4000 Essential English Words/How the Sun and the Moon Were Made.md",
+        "hasAudio": true
+      },
+      {
         "name": "Ironman Races.md",
         "path": "4000 Essential English Words/Ironman Races.md",
         "hasAudio": true
