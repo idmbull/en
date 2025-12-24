@@ -29,9 +29,11 @@ export class ExerciseController {
     init() {
         initTheme();
 
+        // --- 1. KHÔI PHỤC CÀI ĐẶT NGƯỜI DÙNG (NEW) ---
+        this.restoreUserPreferences();
+
         // --- QUAN TRỌNG: Gắn sự kiện gõ phím ---
         if (DOM.textInput) {
-            // Loại bỏ tham số mode, handleGlobalInput tự xử lý qua Store
             DOM.textInput.oninput = () => handleGlobalInput();
         } else {
             console.error("Critical Error: #textInput not found in DOM");
@@ -44,14 +46,6 @@ export class ExerciseController {
             });
         }
 
-        if (DOM.blindModeToggle) {
-            DOM.blindModeToggle.addEventListener("change", (e) => {
-                const checked = e.target.checked;
-                Store.setBlindMode(checked);
-                this.toggleBlindMode(checked);
-            });
-        }
-
         if (DOM.actionToggle) {
             DOM.actionToggle.onchange = (e) => this.handleAction(e.target.checked);
         }
@@ -60,6 +54,59 @@ export class ExerciseController {
 
         // Log để biết Controller đã chạy
         console.log("ExerciseController initialized");
+    }
+
+    // --- HÀM MỚI: QUẢN LÝ LOCAL STORAGE ---
+    restoreUserPreferences() {
+        // Helper: Lấy bool từ storage (mặc định true hoặc false)
+        const getStoredBool = (key, defaultValue) => {
+            const val = localStorage.getItem(key);
+            return val === null ? defaultValue : val === 'true';
+        };
+
+        // 1. Sound (Default: ON)
+        if (DOM.soundToggle) {
+            const isSoundOn = getStoredBool('pref_sound', true);
+            DOM.soundToggle.checked = isSoundOn;
+            DOM.soundToggle.addEventListener('change', (e) => {
+                localStorage.setItem('pref_sound', e.target.checked);
+            });
+        }
+
+        // 2. Speak / Auto Pronounce (Default: ON)
+        if (DOM.autoPronounceToggle) {
+            const isSpeakOn = getStoredBool('pref_speak', true);
+            DOM.autoPronounceToggle.checked = isSpeakOn;
+            DOM.autoPronounceToggle.addEventListener('change', (e) => {
+                localStorage.setItem('pref_speak', e.target.checked);
+            });
+        }
+
+        // 3. Tooltip (Default: ON)
+        if (DOM.autoTooltipToggle) {
+            const isTooltipOn = getStoredBool('pref_tooltip', true);
+            DOM.autoTooltipToggle.checked = isTooltipOn;
+            DOM.autoTooltipToggle.addEventListener('change', (e) => {
+                localStorage.setItem('pref_tooltip', e.target.checked);
+            });
+        }
+
+        // 4. Blind Mode (Default: OFF) - Cần xử lý logic Store và UI
+        if (DOM.blindModeToggle) {
+            const isBlindOn = getStoredBool('pref_blind', false);
+            DOM.blindModeToggle.checked = isBlindOn;
+
+            // Apply ngay lập tức
+            Store.setBlindMode(isBlindOn);
+            if (isBlindOn) document.body.classList.add("blind-mode");
+
+            DOM.blindModeToggle.addEventListener("change", (e) => {
+                const checked = e.target.checked;
+                Store.setBlindMode(checked);
+                this.toggleBlindMode(checked);
+                localStorage.setItem('pref_blind', checked);
+            });
+        }
     }
 
     setupGlobalEvents() {
@@ -88,9 +135,14 @@ export class ExerciseController {
             if (e.ctrlKey && e.code === "KeyB") {
                 e.preventDefault();
                 const newState = !Store.isBlind();
-                Store.setBlindMode(newState);
+
+                // Cập nhật UI Toggle
                 if (DOM.blindModeToggle) DOM.blindModeToggle.checked = newState;
+
+                // Cập nhật Logic & Storage
+                Store.setBlindMode(newState);
                 this.toggleBlindMode(newState);
+                localStorage.setItem('pref_blind', newState);
             }
         };
 
@@ -150,10 +202,6 @@ export class ExerciseController {
             // Chỉ enable input nếu đã nạp Text vào Store
             const hasText = !!Store.getSource().text;
 
-            // Ở trạng thái chờ (chưa bấm Start), ta Disable input hoặc để Enable tùy UX
-            // Cách cũ: Disable và bắt user bấm Start hoặc gõ phím để Auto-Start.
-            // Để Auto-Start hoạt động, Input phải KHÔNG ĐƯỢC DISABLED.
-
             // Logic mới: Luôn Enable nếu có Text, để gõ là tự chạy
             DOM.textInput.disabled = !hasText;
 
@@ -187,7 +235,11 @@ export class ExerciseController {
 
     toggleBlindMode(isEnabled) {
         document.body.classList.toggle("blind-mode", isEnabled);
-        applyBlindMode(DOM.textInput.value.length);
+
+        // Kiểm tra xem textInput có tồn tại và có giá trị không trước khi apply
+        const caretPos = DOM.textInput ? DOM.textInput.value.length : 0;
+        applyBlindMode(caretPos);
+
         this.refocus();
     }
 
