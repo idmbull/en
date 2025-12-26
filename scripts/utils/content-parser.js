@@ -3,6 +3,7 @@ import { convertMarkdownToPlain } from "../utils.js";
 
 const TIMESTAMP_REGEX = /^([\d.]+)\s+([\d.]+)/;
 
+// Hàm làm sạch cơ bản cho metadata
 function cleanText(text) {
     if (!text) return "";
     return text
@@ -16,14 +17,32 @@ function cleanText(text) {
         .replace(/\u200B/g, "");
 }
 
+// [REFACTOR] Hàm làm sạch dành riêng cho nội dung gõ (Typing Engine)
 function cleanForTyping(text) {
-    // Chuyển markdown sang text thuần
-    let plain = convertMarkdownToPlain(text);
-    // [FIX] Chuẩn hóa khoảng trắng: thay thế chuỗi whitespace bằng 1 space duy nhất
-    // Điều này quan trọng vì Browser render HTML cũng sẽ collapse whitespace.
-    return plain.replace(/\s+/g, ' ').trim();
+    if (!text) return "";
+
+    let s = text;
+
+    // 1. Loại bỏ Footnote: ^[note] trước để tránh xử lý nhầm bên trong
+    s = s.replace(/\^\[[^\]]+\]/g, '');
+
+    // 2. Loại bỏ Skipped Text: `content`
+    // Thay thế bằng chuỗi rỗng, giữ nguyên khoảng trắng xung quanh nó
+    s = s.replace(/`[^`]+`/g, '');
+
+    // 3. Loại bỏ định dạng Markdown
+    s = s.replace(/[*_~]+/g, '');
+
+    // 4. Thay thế các ký tự xuống dòng/tab bằng dấu cách
+    s = s.replace(/[\r\n\t]+/g, ' ');
+
+    // 5. Gộp nhiều dấu cách liên tiếp thành 1 
+    // QUAN TRỌNG: Không dùng trim() ở đây để bảo toàn khoảng trắng dẫn đầu/cuối của fragment
+    s = s.replace(/\s+/g, ' ');
+
+    return s;
 }
-// Hàm mã hóa an toàn cho HTML Attribute (tránh lỗi khi note chứa dấu ngoặc kép)
+
 function escapeAttr(s) {
     if (!s) return "";
     return s.replace(/&/g, "&amp;")
@@ -46,9 +65,10 @@ export function parseUnified(rawContent) {
     let blocks = [];
     let isDictation = lines.some(line => TIMESTAMP_REGEX.test(line.trim()));
 
+    // BƯỚC 1: Phân tách Blocks
     lines.forEach(line => {
         const trimmed = line.trim();
-
+        // Giữ lại dòng trống để tạo paragraph break
         if (!trimmed) {
             if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'break') {
                 blocks.push({ type: 'break' });
@@ -70,7 +90,16 @@ export function parseUnified(rawContent) {
         }
     });
 
+    // BƯỚC 2: Lắp ráp dữ liệu (Assemble)
     assembleData(blocks, result);
+
+    // BƯỚC 3: Chuẩn hóa lần cuối
+    // [FIX QUAN TRỌNG] Chỉ trimEnd(). 
+    // Nếu trimStart(), ta sẽ xóa mất khoảng trắng mà người dùng nhìn thấy trên màn hình (do skipped text để lại).
+    if (result.text) {
+        result.text = result.text.trimEnd();
+    }
+
     return result;
 }
 
@@ -90,28 +119,16 @@ function parseDictationLine(line) {
 }
 
 function formatHtmlContent(text) {
-    // Helper để tạo HTML span
     const makeSpan = (word, note) => {
-        // [QUAN TRỌNG] Clean text bên trong span để đồng bộ tuyệt đối với Typing Logic
-        // Tránh việc marked parse lại nội dung bên trong span gây lệch DOM
         const cleanWord = convertMarkdownToPlain(word);
         return `<span class="tooltip-word" data-note="${escapeAttr(note)}">${cleanWord}</span>`;
     };
 
     return text
-        // 0. Case: `text` -> Skipped Text
         .replace(/`([^`]+)`/g, '<span class="skipped-text">$1</span>')
-
-        // 1. Case: **text**^[note] -> Tooltip
-        .replace(/\*\*(.+?)\*\*\^\[([^\]]+)\]/g, (match, word, note) => makeSpan(word, note))
-
-        // 2. Case: Dấu câu^[note]
-        .replace(/([.,;!?])\^\[([^\]]+)\]/g, (match, char, note) => makeSpan(char, note))
-
-        // 3. Case: Từ đơn^[note]
-        .replace(/([^\s.,;!?\[\]\^]+)\^\[([^\]]+)\]/g, (match, word, note) => makeSpan(word, note))
-
-        // 4. Clean Markdown còn sót lại
+        .replace(/\*\*(.+?)\*\*\^\[([^\]]+)\]/g, (m, w, n) => makeSpan(w, n))
+        .replace(/([.,;!?])\^\[([^\]]+)\]/g, (m, c, n) => makeSpan(c, n))
+        .replace(/([^\s.,;!?\[\]\^]+)\^\[([^\]]+)\]/g, (m, w, n) => makeSpan(w, n))
         .replace(/\*\*(.+?)\*\*/g, "$1")
         .replace(/\*(.+?)\*/g, "$1")
         .replace(/__(.+?)__/g, "$1")
@@ -129,7 +146,7 @@ function assembleData(blocks, result) {
         }
     };
 
-    blocks.forEach((block, idx) => {
+    blocks.forEach((block) => {
         if (block.type === 'header' || block.type === 'break') {
             flushParagraph();
             if (block.type === 'header') {
@@ -138,33 +155,53 @@ function assembleData(blocks, result) {
             return;
         }
 
-        const rawContent = block.content
-            .replace(/`([^`]+)`/g, "")
-            .replace(/\*\*(.+?)\*\*\^\[([^\]]+)\]/g, "$1")
-            .replace(/([.,;!?])\^\[([^\]]+)\]/g, "$1")
-            .replace(/([^\s.,;!?\[\]\^]+)\^\[([^\]]+)\]/g, "$1")
-            .replace(/\*\*(.+?)\*\*/g, "$1")
-            .replace(/\*(.+?)\*/g, "$1");
+        // Xử lý Text cho Engine
+        const cleanFragment = cleanForTyping(block.content);
 
-        const cleanTypingText = cleanForTyping(rawContent);
+        // Kiểm tra xem sau khi lọc, block này có còn nội dung gõ không
+        // (Lưu ý: " " vẫn tính là có nội dung để nối từ)
+        const hasTypingContent = cleanFragment.length > 0 && cleanFragment.trim().length > 0;
 
-        if (cleanTypingText.length > 0) {
-            const prefixSpace = (result.text.length > 0 && !result.text.endsWith(" ")) ? " " : "";
-            result.charStarts.push(result.text.length + prefixSpace.length);
-            result.text += prefixSpace + cleanTypingText;
+        // Trường hợp đặc biệt: Dòng chỉ chứa Skipped Text (ví dụ: `Hidden`)
+        // cleanFragment sẽ là "" hoặc " ".
+        // Ta cần đảm bảo nó đóng vai trò như một separator (dấu cách) để không dính chữ.
+        const isSkippedLine = !hasTypingContent && block.content.trim().length > 0;
+
+        if (hasTypingContent) {
+            // Logic nối chuỗi thông minh:
+            // Thêm dấu cách nếu text cũ chưa có và text mới không bắt đầu bằng dấu cách
+            let prefix = "";
+            if (result.text.length > 0) {
+                const endsWithSpace = result.text.endsWith(" ");
+                const startsWithSpace = cleanFragment.startsWith(" ");
+
+                if (!endsWithSpace && !startsWithSpace) {
+                    prefix = " ";
+                }
+            }
+
+            result.charStarts.push(result.text.length + prefix.length);
+            result.text += prefix + cleanFragment;
 
             if (block.type === 'audio') {
                 result.segments.push({
                     audioStart: block.start,
                     audioEnd: block.end,
-                    text: cleanTypingText
+                    text: cleanFragment.trim()
                 });
             }
         }
+        else if (isSkippedLine) {
+            // Nếu là dòng Skipped, chỉ thêm dấu cách vào result.text nếu chưa có.
+            // Điều này giúp tách dòng trước và dòng sau.
+            if (result.text.length > 0 && !result.text.endsWith(" ")) {
+                result.text += " ";
+            }
+        }
 
+        // Xử lý HTML
         const speakerHtml = block.speaker ? `<span class="speaker-label">${block.speaker}: </span>` : "";
         const contentHtml = formatHtmlContent(block.content);
-
         const htmlPrefix = currentParagraphHtml ? " " : "";
         currentParagraphHtml += `${htmlPrefix}${speakerHtml}${contentHtml}`;
     });
@@ -174,5 +211,4 @@ function assembleData(blocks, result) {
     if (result.html.endsWith('<span class="newline-char">↵</span>')) {
         result.html = result.html.slice(0, -'<span class="newline-char">↵</span>'.length);
     }
-
 }
