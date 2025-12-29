@@ -13,6 +13,7 @@ const superPlayer = new SuperAudioPlayer();
 let mainController;
 // [NEW] Biến lưu timer để xử lý phân biệt Click vs Double Click
 let clickTimer = null;
+let isGlobalPlaying = false;
 
 async function setupAudioForContent() {
     const source = Store.getSource();
@@ -20,6 +21,7 @@ async function setupAudioForContent() {
 
     if (isAudio) {
         DOM.volumeControl.classList.remove("hidden");
+        if (DOM.mediaControls) DOM.mediaControls.classList.remove("hidden");
         DOM.headerSubtitle.textContent = "Nghe kỹ - Gõ chính xác";
         if (source.audioUrl) {
             try {
@@ -33,7 +35,7 @@ async function setupAudioForContent() {
         }
     } else {
         DOM.volumeControl.classList.add("hidden");
-        if (DOM.dictationReplayBtn) DOM.dictationReplayBtn.classList.add("hidden");
+        if (DOM.mediaControls) DOM.mediaControls.classList.add("hidden");
         DOM.headerSubtitle.textContent = "Tập trung - Thư giãn - Phát triển";
         superPlayer.clear();
     }
@@ -56,12 +58,25 @@ function playNextLesson() {
 }
 
 function playCurrentSegment() {
+    // [NEW] Khi phát segment lẻ, phải tắt chế độ Global Play để tránh xung đột
+    updatePlayAllIcon(false);
+
     if (!Store.isAudio()) return;
     const s = Store.getSource();
     const seg = s.segments[s.currentSegment];
     if (seg) {
         superPlayer.stop();
         superPlayer.playSegment(seg.audioStart, seg.audioEnd);
+    }
+}
+
+function updatePlayAllIcon(isPlaying) {
+    isGlobalPlaying = isPlaying;
+    if (DOM.dictationPlayAllBtn) {
+        DOM.dictationPlayAllBtn.textContent = isPlaying ? "⏸" : "▶";
+        // Highlight nút khi đang active
+        DOM.dictationPlayAllBtn.style.color = isPlaying ? "var(--correct-color)" : "inherit";
+        DOM.dictationPlayAllBtn.style.borderColor = isPlaying ? "var(--correct-color)" : "var(--border-color)";
     }
 }
 
@@ -75,6 +90,7 @@ export async function initApp() {
 
     EventBus.on(EVENTS.EXERCISE_COMPLETE, () => {
         superPlayer.stop();
+        updatePlayAllIcon(false);
     });
 
     EventBus.on(EVENTS.EXERCISE_START, () => {
@@ -97,6 +113,7 @@ export async function initApp() {
 
     let maxReachedSegment = 0;
     EventBus.on(EVENTS.DICTATION_SEGMENT_CHANGE, (newIdx) => {
+        if (isGlobalPlaying) return;
         if (Store.isAudio() && newIdx > maxReachedSegment) {
             maxReachedSegment = newIdx;
             const seg = Store.getSource().segments[newIdx];
@@ -219,8 +236,40 @@ export async function initApp() {
     await loadLibrary();
     setupDictationModal();
 
-    if (DOM.dictationReplayBtn) {
-        DOM.dictationReplayBtn.onclick = () => playCurrentSegment();
+    if (DOM.dictationPlayAllBtn) {
+        superPlayer.onEnded = () => {
+            // Khi hết bài thì reset icon về Play
+            updatePlayAllIcon(false);
+            // Có thể reset pausedAt về 0 nếu muốn lần sau bấm là nghe lại từ đầu
+            superPlayer.pausedAt = 0;
+        };
+
+        DOM.dictationPlayAllBtn.onclick = () => {
+            if (!Store.isAudio()) return;
+
+            // Kiểm tra trạng thái thực tế từ Player
+            if (superPlayer.isPlaying) {
+                // Đang Play -> Bấm vào thì Pause
+                superPlayer.pause();
+                updatePlayAllIcon(false); // Hiện icon Play
+            } else {
+                // Đang Pause -> Bấm vào thì Resume
+
+                // Logic thông minh: 
+                // 1. Nếu chưa phát bao giờ (pausedAt == 0), có thể lấy vị trí con trỏ hiện tại làm mốc
+                if (superPlayer.pausedAt === 0) {
+                    const s = Store.getSource();
+                    if (s.segments && s.segments[s.currentSegment]) {
+                        superPlayer.pausedAt = s.segments[s.currentSegment].audioStart;
+                    }
+                }
+
+                superPlayer.resume();
+                updatePlayAllIcon(true); // Hiện icon Pause
+            }
+
+            if (DOM.textInput && !DOM.textInput.disabled) DOM.textInput.focus();
+        };
     }
 }
 
