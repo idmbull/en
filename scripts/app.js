@@ -139,16 +139,31 @@ export async function initApp() {
             const charIndex = Store.getState().textSpans.indexOf(e.target);
             if (charIndex === -1) return;
 
-            // Logic tìm từ và phát âm (TTS/Dictionary)
-            const { wordStarts, wordTokens } = Store.getState();
-            for (let i = 0; i < wordStarts.length; i++) {
-                const start = wordStarts[i];
-                const end = start + wordTokens[i].length;
+            if (Store.isAudio()) {
+                const s = Store.getSource();
+                let targetSegIdx = 0;
+                for (let i = s.charStarts.length - 1; i >= 0; i--) {
+                    if (charIndex >= s.charStarts[i]) {
+                        targetSegIdx = i;
+                        break;
+                    }
+                }
+                Store.setCurrentSegment(targetSegIdx);
+                maxReachedSegment = targetSegIdx;
+                playCurrentSegment();
+            }
+            else {
+                // Logic tìm từ và phát âm (TTS/Dictionary)
+                const { wordStarts, wordTokens } = Store.getState();
+                for (let i = 0; i < wordStarts.length; i++) {
+                    const start = wordStarts[i];
+                    const end = start + wordTokens[i].length;
 
-                if (charIndex >= start && charIndex < end) {
-                    const word = wordTokens[i];
-                    enqueueSpeak(word, true); // Phát âm
-                    break;
+                    if (charIndex >= start && charIndex < end) {
+                        const word = wordTokens[i];
+                        enqueueSpeak(word, true); // Phát âm
+                        break;
+                    }
                 }
             }
 
@@ -169,19 +184,19 @@ export async function initApp() {
         const charIndex = Store.getState().textSpans.indexOf(e.target);
         if (charIndex === -1) return;
 
-        // Chỉ phát Segment nếu đang ở chế độ Audio (Dictation)
-        if (Store.isAudio()) {
-            const s = Store.getSource();
-            let targetSegIdx = 0;
-            for (let i = s.charStarts.length - 1; i >= 0; i--) {
-                if (charIndex >= s.charStarts[i]) {
-                    targetSegIdx = i;
-                    break;
-                }
+
+        // Logic tìm từ và phát âm (TTS/Dictionary)
+        const { wordStarts, wordTokens } = Store.getState();
+        for (let i = 0; i < wordStarts.length; i++) {
+            const start = wordStarts[i];
+            const end = start + wordTokens[i].length;
+
+            if (charIndex >= start && charIndex < end) {
+                const word = wordTokens[i];
+                enqueueSpeak(word, true); // Phát âm
+                break;
             }
-            Store.setCurrentSegment(targetSegIdx);
-            maxReachedSegment = targetSegIdx;
-            playCurrentSegment();
+
         }
     });
 
