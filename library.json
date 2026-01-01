@@ -273,8 +273,18 @@
         "hasAudio": false
       },
       {
+        "name": "Personality.md",
+        "path": "Richmond Vocabulary Builder B1/Personality.md",
+        "hasAudio": false
+      },
+      {
         "name": "Unit 03 - Exercise 2.md",
         "path": "Richmond Vocabulary Builder B1/Unit 03 - Exercise 2.md",
+        "hasAudio": true
+      },
+      {
+        "name": "Unit 03 - Exercise 4.md",
+        "path": "Richmond Vocabulary Builder B1/Unit 03 - Exercise 4.md",
         "hasAudio": true
       }
     ]
