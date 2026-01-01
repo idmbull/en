@@ -258,5 +258,25 @@
         "hasAudio": false
       }
     ]
+  },
+  {
+    "name": "Richmond Vocabulary Builder B1",
+    "items": [
+      {
+        "name": "Clothes.md",
+        "path": "Richmond Vocabulary Builder B1/Clothes.md",
+        "hasAudio": false
+      },
+      {
+        "name": "Describing people's appearance.md",
+        "path": "Richmond Vocabulary Builder B1/Describing people's appearance.md",
+        "hasAudio": false
+      },
+      {
+        "name": "Unit 03 - Exercise 2.md",
+        "path": "Richmond Vocabulary Builder B1/Unit 03 - Exercise 2.md",
+        "hasAudio": true
+      }
+    ]
   }
 ]
