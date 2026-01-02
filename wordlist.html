@@ -2,9 +2,10 @@
 <html lang="vi">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HTML -> Table parser (wordlist → bảng)</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>HTML → Wordlist Table Parser</title>
+
     <style>
         body {
             font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial;
@@ -13,153 +14,109 @@
             padding: 16px;
         }
 
-        h1 {
-            margin: 0 0 8px
-        }
-
-        p.lead {
-            margin: 4px 0 18px;
-            color: #333
-        }
-
         textarea {
             width: 100%;
             height: 280px;
-            padding: 10px;
             font-family: monospace;
             font-size: 13px;
-            box-sizing: border-box
+            padding: 10px;
         }
 
         button {
-            margin: 6px 6px 6px 0;
             padding: 8px 12px;
+            margin: 4px 4px 4px 0;
             border-radius: 6px;
             border: 1px solid #bbb;
-            background: #f6f6f6;
-            cursor: pointer
+            cursor: pointer;
         }
 
         button.primary {
             background: #0366d6;
             color: #fff;
-            border-color: #0356b6
-        }
-
-        .controls {
-            margin: 10px 0
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 12px
+            margin-top: 12px;
         }
 
         th,
         td {
             border: 1px solid #ddd;
             padding: 6px;
-            text-align: left;
-            vertical-align: top
+            vertical-align: top;
         }
 
         th {
-            background: #f3f6fb
+            background: #f3f6fb;
+        }
+
+        .img-thumb {
+            max-height: 70px;
+            border-radius: 4px;
         }
 
         .small {
             font-size: 13px;
-            color: #555
-        }
-
-        .flex {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: center
-        }
-
-        .col-toggle {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap
-        }
-
-        .download-link {
-            display: inline-block;
-            margin-left: 8px
-        }
-
-        .img-thumb {
-            height: 64px;
-            max-width: 120px;
-            object-fit: cover;
-            border-radius: 4px
-        }
-
-        .note {
-            font-size: 13px;
-            color: #444;
-            margin-top: 8px
+            color: #555;
         }
 
         .error {
-            color: #b00
+            color: #b00;
+        }
+
+        .col-toggle label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #eee;
+            padding: 4px 6px;
+            border-radius: 6px;
+            margin: 3px;
         }
     </style>
 </head>
 
 <body>
-    <h1>Trình chuyển đổi <code>&lt;ul class="wordlist"&gt;</code> → bảng</h1>
-    <p class="lead">Dán nội dung <code>&lt;ul&gt;</code> (như mẫu của bạn) vào ô phía dưới rồi bấm
-        <strong>Parse</strong>.
-    </p>
 
-    <label><strong>1) Dán HTML (mẫu chứa &lt;ul class="wordlist"&gt; ... )</strong></label>
-    <textarea id="inputHtml" placeholder="Dán đoạn &lt;ul&gt; ở đây..."></textarea>
+    <h1>HTML → Wordlist Table</h1>
+    <p class="small">Dán <code>&lt;ul class="wordlist"&gt;</code> rồi parse, copy hoặc export.</p>
 
-    <div class="controls">
-        <div class="flex">
-            <button id="btnParse" class="primary">Parse</button>
-            <button id="btnClear">Clear</button>
-            <button id="btnCopyTable">Copy table (CSV)</button>
-            <button id="btnDownloadCSV">Export CSV</button>
-            <button id="btnDownloadJSON">Export JSON</button>
-            <button id="btnDownloadHTML">Export HTML table</button>
-            <div id="msg" class="small"></div>
-        </div>
+    <textarea id="inputHtml" placeholder="Dán HTML ở đây..."></textarea>
+
+    <div>
+        <button id="btnParse" class="primary">Parse</button>
+        <button id="btnCopyTSV">Copy TSV (Excel)</button>
+        <button id="btnClear">Clear</button>
+        <button id="btnCopyCSV">Copy CSV</button>
+        <button id="btnDownloadCSV">Export CSV</button>
+        <button id="btnDownloadJSON">Export JSON</button>
+        <button id="btnDownloadHTML">Export HTML hoàn chỉnh</button>
+        <span id="msg" class="small"></span>
     </div>
 
-    <div style="margin-top:10px">
-        <label><strong>2) Chọn cột muốn hiển thị:</strong></label>
-        <div class="col-toggle" id="colToggle"></div>
-    </div>
+    <h3 class="small">Chọn cột hiển thị</h3>
+    <div id="colToggle" class="col-toggle"></div>
 
     <div id="preview"></div>
 
     <script>
-        /* Parser + exporter script */
         (function () {
             const defaultCols = [
-                // {key:'nid', label:'nid'},
-                { key: 'word', label: 'word' },
-                // { key: 'title', label: 'title' },
-                // { key: 'pro', label: 'pronunciation (pro)' },
-                // { key: 'enPron', label: 'pronunciation (from .en-pron)' },
-                // { key: 'img', label: 'img (attribute)' },
-                // { key: 'imgSrc', label: 'image src (inner <img>)' },
-                // { key: 'source', label: 'audio source' },
-                // { key: 'remainaudioloop', label: 'remainaudioloop' },
-                { key: 'desc', label: 'description (.en-desc)' },
-                // { key: 'example', label: 'example (.en-exam)' }
+                { key: 'word', label: 'Word' },
+                { key: 'desc', label: 'Description' },
+                { key: 'example', label: 'Example' },
+                { key: 'imgSrc', label: 'Image' },
+                { key: 'source', label: 'Audio' }
             ];
 
             const $ = id => document.getElementById(id);
-            const input = $('inputHtml'), btnParse = $('btnParse'), preview = $('preview');
-            const msg = $('msg'), colToggle = $('colToggle');
-            const btnClear = $('btnClear'), btnCopyTable = $('btnCopyTable'), btnDownloadCSV = $('btnDownloadCSV');
-            const btnDownloadJSON = $('btnDownloadJSON'), btnDownloadHTML = $('btnDownloadHTML');
+            const input = $('inputHtml'), preview = $('preview'), msg = $('msg');
+            const btnParse = $('btnParse'), btnClear = $('btnClear');
+            const btnCopyCSV = $('btnCopyCSV'), btnCopyTSV = $('btnCopyTSV');
+            const btnDownloadCSV = $('btnDownloadCSV'), btnDownloadJSON = $('btnDownloadJSON');
+            const btnDownloadHTML = $('btnDownloadHTML'), colToggle = $('colToggle');
 
             let lastData = [];
 
@@ -169,297 +126,128 @@
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
                     cb.checked = true;
-                    cb.id = 'col_' + c.key;
                     cb.dataset.key = c.key;
-                    const lbl = document.createElement('label');
-                    lbl.style.display = 'inline-flex';
-                    lbl.style.alignItems = 'center';
-                    lbl.style.gap = '6px';
-                    lbl.style.padding = '4px 6px';
-                    lbl.style.border = '1px solid #eee';
-                    lbl.style.borderRadius = '6px';
-                    lbl.style.background = '#fff';
-                    lbl.htmlFor = cb.id;
-                    lbl.appendChild(cb);
-                    const span = document.createElement('span');
-                    span.textContent = c.label;
-                    span.style.fontSize = '13px';
-                    lbl.appendChild(span);
-                    colToggle.appendChild(lbl);
+                    const label = document.createElement('label');
+                    label.appendChild(cb);
+                    label.append(c.label);
+                    colToggle.appendChild(label);
                 });
             }
 
-            function parseHtmlToData(html) {
+            function parseHtml(html) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                // find ul with class wordlist OR any UL > LI items
-                const lists = doc.querySelectorAll('ul.wordlist, ul');
-                if (lists.length === 0) return { error: 'Không tìm thấy thẻ <ul> trong nội dung.' };
-                // try to pick ul.wordlist first
-                let ul = doc.querySelector('ul.wordlist') || lists[0];
-                const items = ul.querySelectorAll('li');
-                const out = [];
-                items.forEach((li, idx) => {
-                    // attributes from <li>
-                    const attr = (name) => li.hasAttribute(name) ? li.getAttribute(name) : '';
-                    const obj = {
-                        nid: attr('nid') || '',
-                        word: attr('word') || '',
-                        title: attr('title') || '',
-                        pro: attr('pro') || '',
-                        img: attr('img') || '',
-                        remainaudioloop: attr('remainaudioloop') || '',
-                        source: attr('source') || ''
+                const ul = doc.querySelector('ul.wordlist') || doc.querySelector('ul');
+                if (!ul) return [];
+                return Array.from(ul.querySelectorAll('li')).map(li => {
+                    const img = li.querySelector('img');
+                    return {
+                        word: li.getAttribute('word') || li.querySelector('.en-word')?.textContent.trim() || '',
+                        imgSrc: img ? 'https://www.essentialenglish.review/' + img.getAttribute('src') : '',
+                        source: 'https://www.essentialenglish.review/' + li.getAttribute('source') || '',
+                        desc: li.querySelector('.en-desc')?.textContent.trim() || '',
+                        example: li.querySelector('.en-exam')?.textContent.replace(/^→\s*/, '').trim() || ''
                     };
-                    // inner image src (first <img> descendant)
-                    const innerImg = li.querySelector('img');
-                    obj.imgSrc = innerImg ? (innerImg.getAttribute('src') || innerImg.getAttribute('source') || '') : '';
-
-                    // pronunciation inside .en-pron (if present)
-                    const enPron = li.querySelector('.en-pron');
-                    obj.enPron = enPron ? enPron.textContent.trim().replace(/^\[|\]$/g, '') : '';
-
-                    // description from .en-desc (strip tags, keep text)
-                    const descEl = li.querySelector('.en-desc');
-                    obj.desc = descEl ? getCleanText(descEl) : '';
-
-                    // example from .en-exam
-                    const examEl = li.querySelector('.en-exam');
-                    obj.example = examEl ? getCleanText(examEl).replace(/^→\s*/, '') : '';
-
-                    // fallback: if word empty, try find .en-word text
-                    if (!obj.word) {
-                        const enWordEl = li.querySelector('.en-word');
-                        if (enWordEl) {
-                            // take first token before space
-                            const txt = enWordEl.textContent.trim();
-                            const first = txt.split(/\s+/)[0];
-                            obj.word = first || obj.word;
-                        }
-                    }
-
-                    out.push(obj);
                 });
-                return { data: out };
-            }
-
-            function getCleanText(el) {
-                // clone node and remove child images and arrow spans, then return textContent trimmed.
-                const clone = el.cloneNode(true);
-                // remove images
-                clone.querySelectorAll('img').forEach(n => n.remove());
-                // remove elements with class arrow
-                clone.querySelectorAll('.arrow').forEach(n => n.remove());
-                // replace strong/em tags by their text - textContent will already include them
-                return clone.textContent.replace(/\s+/g, ' ').trim();
             }
 
             function renderTable(data) {
-                if (!data || !data.length) {
-                    preview.innerHTML = '<div class="note">Không có dữ liệu để hiển thị.</div>';
-                    return;
-                }
-
-                // selected columns
-                const cols = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
-                    .filter(cb => cb.checked)
-                    .map(cb => cb.dataset.key);
-
-                const headers = defaultCols.filter(c => cols.includes(c.key)).map(c => c.label);
-                const keys = defaultCols.filter(c => cols.includes(c.key)).map(c => c.key);
-
-                // build table
-                const table = document.createElement('table');
-                const thead = document.createElement('thead');
-                const trh = document.createElement('tr');
+                const keys = getKeys();
+                let html = '<table><thead><tr>';
                 keys.forEach(k => {
-                    const th = document.createElement('th');
-                    const label = defaultCols.find(c => c.key === k).label;
-                    th.textContent = label;
-                    trh.appendChild(th);
+                    html += `<th>${defaultCols.find(c => c.key === k).label}</th>`;
                 });
-                thead.appendChild(trh);
-                table.appendChild(thead);
+                html += '</tr></thead><tbody>';
 
-                const tbody = document.createElement('tbody');
                 data.forEach(row => {
-                    const tr = document.createElement('tr');
+                    html += '<tr>';
                     keys.forEach(k => {
-                        const td = document.createElement('td');
-                        let val = row[k] || '';
-                        if (k === 'imgSrc' && val) {
-                            // show thumbnail
-                            const img = document.createElement('img');
-                            img.src = val;
-                            img.alt = row.word || '';
-                            img.className = 'img-thumb';
-                            td.appendChild(img);
-                        } else if (k === 'source' && val) {
-                            const a = document.createElement('a');
-                            a.href = val;
-                            a.textContent = val;
-                            a.target = '_blank';
-                            td.appendChild(a);
+                        if (k === 'imgSrc' && row[k]) {
+                            html += `<td><img src="${row[k]}" class="img-thumb"></td>`;
+                        } else if (k === 'source' && row[k]) {
+                            html += `<td><a href="${row[k]}" target="_blank">${row[k]}</a></td>`;
                         } else {
-                            td.textContent = val;
+                            html += `<td>${row[k] || ''}</td>`;
                         }
-                        tr.appendChild(td);
                     });
-                    tbody.appendChild(tr);
+                    html += '</tr>';
                 });
-                table.appendChild(tbody);
-                preview.innerHTML = '<h3 class="small">BẢN XEM TRƯỚC</h3>';
-                preview.appendChild(table);
+                html += '</tbody></table>';
+                preview.innerHTML = html;
             }
 
-            function toCSV(data, keys) {
-                // build header
-                const header = keys.map(k => escapeCSV(k)).join(',');
-                const lines = data.map(row => {
-                    return keys.map(k => escapeCSV(row[k] || '')).join(',');
-                });
-                return [header].concat(lines).join('\n');
-
-                function escapeCSV(s) {
-                    // ensure string
-                    s = String(s || '');
-                    if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
-                        return '"' + s.replace(/"/g, '""') + '"';
-                    }
-                    return s;
-                }
+            function getKeys() {
+                return Array.from(colToggle.querySelectorAll('input:checked'))
+                    .map(cb => cb.dataset.key);
             }
 
-            function downloadFilename(ext) {
-                const d = new Date();
-                const stamp = d.toISOString().slice(0, 19).replace(/[:T]/g, '-');
-                return `wordlist-${stamp}.${ext}`;
+            function toDelimited(data, keys, sep) {
+                return [
+                    keys.join(sep),
+                    ...data.map(r => keys.map(k =>
+                        String(r[k] || '').replace(/\r?\n|\t/g, ' ')
+                    ).join(sep))
+                ].join('\n');
             }
 
-            // events
-            btnParse.addEventListener('click', () => {
-                msg.textContent = '';
-                const html = input.value.trim();
-                if (!html) {
-                    msg.textContent = 'Vui lòng dán HTML vào ô trên.';
+            function downloadFile(content, type, ext) {
+                const blob = new Blob([content], { type });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wordlist-${Date.now()}.${ext}`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            /* EVENTS */
+
+            btnParse.onclick = () => {
+                lastData = parseHtml(input.value);
+                if (!lastData.length) {
+                    msg.textContent = 'Không tìm thấy dữ liệu.';
                     msg.className = 'small error';
                     return;
                 }
-                const res = parseHtmlToData(html);
-                if (res.error) {
-                    msg.textContent = res.error;
-                    msg.className = 'small error';
-                    preview.innerHTML = '';
-                    lastData = [];
-                    return;
-                }
-                lastData = res.data;
-                createColToggles(); // (recreate in case not yet)
                 renderTable(lastData);
-                msg.textContent = `Đã parse ${lastData.length} items.`;
+                msg.textContent = `Parsed ${lastData.length} items`;
                 msg.className = 'small';
-            });
+            };
 
-            btnClear.addEventListener('click', () => {
+            btnClear.onclick = () => {
                 input.value = '';
                 preview.innerHTML = '';
                 msg.textContent = '';
-                lastData = [];
-            });
+            };
 
-            // when toggles change re-render
-            colToggle.addEventListener('change', () => {
-                if (lastData && lastData.length) renderTable(lastData);
-            });
+            btnCopyCSV.onclick = async () => {
+                await navigator.clipboard.writeText(
+                    toDelimited(lastData, getKeys(), ',')
+                );
+                msg.textContent = 'Đã copy CSV';
+            };
 
-            btnCopyTable.addEventListener('click', async () => {
-                if (!lastData.length) { msg.textContent = 'Không có dữ liệu để copy.'; return; }
-                const keys = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
-                    .filter(cb => cb.checked).map(cb => cb.dataset.key);
-                const csv = toCSV(lastData, keys);
-                try {
-                    await navigator.clipboard.writeText(csv);
-                    msg.textContent = 'Đã copy CSV vào clipboard.';
-                    msg.className = 'small';
-                } catch (e) {
-                    msg.textContent = 'Không copy được (trình duyệt chặn). Bạn có thể Export CSV.';
-                    msg.className = 'small error';
-                }
-            });
+            btnCopyTSV.onclick = async () => {
+                await navigator.clipboard.writeText(
+                    toDelimited(lastData, getKeys(), '\t')
+                );
+                msg.textContent = 'Đã copy TSV (Excel)';
+            };
 
-            btnDownloadCSV.addEventListener('click', () => {
-                if (!lastData.length) { msg.textContent = 'Không có dữ liệu để export.'; return; }
-                const keys = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
-                    .filter(cb => cb.checked).map(cb => cb.dataset.key);
-                const csv = toCSV(lastData, keys);
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = downloadFilename('csv');
-                document.body.appendChild(a); a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                msg.textContent = 'Đang tải CSV...';
-            });
+            btnDownloadCSV.onclick = () =>
+                downloadFile(toDelimited(lastData, getKeys(), ','), 'text/csv', 'csv');
 
-            btnDownloadJSON.addEventListener('click', () => {
-                if (!lastData.length) { msg.textContent = 'Không có dữ liệu để export.'; return; }
-                const blob = new Blob([JSON.stringify(lastData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = downloadFilename('json');
-                document.body.appendChild(a); a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                msg.textContent = 'Đang tải JSON...';
-            });
+            btnDownloadJSON.onclick = () =>
+                downloadFile(JSON.stringify(lastData, null, 2), 'application/json', 'json');
 
-            btnDownloadHTML.addEventListener('click', () => {
-                if (!lastData.length) { msg.textContent = 'Không có dữ liệu để export.'; return; }
-                // build simple standalone HTML table
-                const keys = Array.from(colToggle.querySelectorAll('input[type=checkbox]'))
-                    .filter(cb => cb.checked).map(cb => cb.dataset.key);
-                const headers = defaultCols.filter(c => keys.includes(c.key)).map(c => c.label);
-                const rows = lastData.map(r => keys.map(k => r[k] ? r[k] : ''));
-                let html = `<!doctype html><html><head><meta charset="utf-8"><title>Export table</title>
-    <style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px;text-align:left}</style>
-    </head><body><table><thead><tr>${headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('')}</tr></thead><tbody>`;
-                rows.forEach(row => {
-                    html += '<tr>' + row.map(cell => '<td>' + escapeHtml(String(cell)) + '</td>').join('') + '</tr>';
-                });
-                html += '</tbody></table></body></html>';
-                const blob = new Blob([html], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = downloadFilename('html');
-                document.body.appendChild(a); a.click(); a.remove();
-                URL.revokeObjectURL(url);
-                msg.textContent = 'Đang tải HTML...';
-            });
+            btnDownloadHTML.onclick = () =>
+                downloadFile(
+                    `<!doctype html><html><head><meta charset="utf-8"><title>Wordlist</title></head>
+<body>${preview.innerHTML}</body></html>`,
+                    'text/html', 'html');
 
-            function escapeHtml(s) {
-                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            }
-
-            // init
             createColToggles();
-            msg.textContent = 'Sẵn sàng. Dán HTML mẫu rồi bấm Parse.';
         })();
     </script>
-
-    <div style="margin-top:18px" class="note">
-        Ghi chú:
-        <ul>
-            <li>Trình parser cố gắng lấy: <strong>nid, word, title, pro, en-pron, img (thuộc tính), image src (thẻ img),
-                    source (audio), remainaudioloop, mô tả (.en-desc), ví dụ (.en-exam)</strong>.</li>
-            <li>Nếu đường dẫn ảnh/audio là đường dẫn tương đối (ví dụ bắt đầu bằng <code>/apps-data/...</code>), file
-                export sẽ ghi nguyên chuỗi đó — bạn có thể thay thế bằng script tìm/ghép base URL nếu cần.</li>
-            <li>Nếu muốn thêm trường khác (ví dụ lấy thẻ <code>strong</code> cụ thể), mình có thể sửa file để trích
-                thêm.</li>
-        </ul>
-    </div>
 
 </body>
 
