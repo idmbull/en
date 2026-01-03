@@ -93,12 +93,6 @@
         <button id="btnDownloadJSON">Export JSON</button>
         <button id="btnDownloadHTML">Export HTML</button>
         <button id="btnClear">Clear</button>
-
-        <label class="small" style="margin-left:8px">
-            <input type="checkbox" id="optKeepStrong" checked>
-            Giữ thẻ &lt;strong&gt;
-        </label>
-
         <span id="msg" class="small"></span>
     </div>
 
@@ -119,29 +113,16 @@
             ];
 
             const $ = id => document.getElementById(id);
-            const input = $('inputHtml'),
-                preview = $('preview'),
-                msg = $('msg'),
-                optKeepStrong = $('optKeepStrong');
-
-            const btnParse = $('btnParse'),
-                btnClear = $('btnClear'),
-                btnCopyCSV = $('btnCopyCSV'),
-                btnCopyTSV = $('btnCopyTSV'),
-                btnDownloadCSV = $('btnDownloadCSV'),
-                btnDownloadJSON = $('btnDownloadJSON'),
-                btnDownloadHTML = $('btnDownloadHTML'),
-                colToggle = $('colToggle');
+            const input = $('inputHtml'), preview = $('preview'), msg = $('msg');
+            const btnParse = $('btnParse'), btnClear = $('btnClear');
+            const btnCopyCSV = $('btnCopyCSV'), btnCopyTSV = $('btnCopyTSV');
+            const btnDownloadCSV = $('btnDownloadCSV'), btnDownloadJSON = $('btnDownloadJSON');
+            const btnDownloadHTML = $('btnDownloadHTML'), colToggle = $('colToggle');
 
             let lastData = [];
 
-            function processHtml(html, keepStrong) {
-                if (!keepStrong) {
-                    const tmp = document.createElement('div');
-                    tmp.innerHTML = html;
-                    return tmp.textContent.trim();
-                }
-
+            /* ===== GIỮ LẠI CHỈ <strong> ===== */
+            function keepOnlyStrong(html) {
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = html;
 
@@ -198,14 +179,10 @@
                         source: li.getAttribute('source')
                             ? 'https://www.essentialenglish.review/' + li.getAttribute('source')
                             : '',
-                        desc: descEl
-                            ? processHtml(descEl.innerHTML, optKeepStrong.checked)
-                                .replace(' </strong>', '</strong> ')
-                            : '',
+                        desc: descEl ? keepOnlyStrong(descEl.innerHTML).replace(' </strong>', '</strong> ') : '',
                         example: examEl
-                            ? processHtml(
-                                examEl.innerHTML.replace(/^<span[^>]*>→<\/span>\s*/, ''),
-                                optKeepStrong.checked
+                            ? keepOnlyStrong(
+                                examEl.innerHTML.replace(/^<span[^>]*>→<\/span>\s*/, '')
                             ).replace(' </strong>', '</strong> ')
                             : ''
                     };
@@ -265,6 +242,8 @@
                 a.click();
                 URL.revokeObjectURL(url);
             }
+
+            /* EVENTS */
 
             btnParse.onclick = () => {
                 lastData = parseHtml(input.value);
