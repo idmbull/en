@@ -81,18 +81,18 @@
 <body>
 
     <h1>HTML → Wordlist Table</h1>
-    <p class="small">Dán <code>&lt;ul class="wordlist"&gt;</code> rồi parse, copy hoặc export.</p>
+    <p class="small">Dán <code>&lt;ul class="wordlist"&gt;</code> rồi parse.</p>
 
     <textarea id="inputHtml" placeholder="Dán HTML ở đây..."></textarea>
 
     <div>
         <button id="btnParse" class="primary">Parse</button>
-        <button id="btnCopyTSV">Copy TSV (Excel)</button>
-        <button id="btnClear">Clear</button>
         <button id="btnCopyCSV">Copy CSV</button>
+        <button id="btnCopyTSV">Copy TSV (Excel)</button>
         <button id="btnDownloadCSV">Export CSV</button>
         <button id="btnDownloadJSON">Export JSON</button>
-        <button id="btnDownloadHTML">Export HTML hoàn chỉnh</button>
+        <button id="btnDownloadHTML">Export HTML</button>
+        <button id="btnClear">Clear</button>
         <span id="msg" class="small"></span>
     </div>
 
@@ -103,6 +103,7 @@
 
     <script>
         (function () {
+
             const defaultCols = [
                 { key: 'word', label: 'Word' },
                 { key: 'desc', label: 'Description' },
@@ -120,6 +121,33 @@
 
             let lastData = [];
 
+            /* ===== GIỮ LẠI CHỈ <strong> ===== */
+            function keepOnlyStrong(html) {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+
+                const walker = document.createTreeWalker(
+                    wrapper,
+                    NodeFilter.SHOW_ELEMENT,
+                    null
+                );
+
+                const toUnwrap = [];
+
+                while (walker.nextNode()) {
+                    const el = walker.currentNode;
+                    if (el.tagName !== 'STRONG') {
+                        toUnwrap.push(el);
+                    }
+                }
+
+                toUnwrap.forEach(el => {
+                    el.replaceWith(...el.childNodes);
+                });
+
+                return wrapper.innerHTML.trim();
+            }
+
             function createColToggles() {
                 colToggle.innerHTML = '';
                 defaultCols.forEach(c => {
@@ -127,6 +155,7 @@
                     cb.type = 'checkbox';
                     cb.checked = true;
                     cb.dataset.key = c.key;
+
                     const label = document.createElement('label');
                     label.appendChild(cb);
                     label.append(c.label);
@@ -138,24 +167,41 @@
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 const ul = doc.querySelector('ul.wordlist') || doc.querySelector('ul');
                 if (!ul) return [];
+
                 return Array.from(ul.querySelectorAll('li')).map(li => {
                     const img = li.querySelector('img');
+                    const descEl = li.querySelector('.en-desc');
+                    const examEl = li.querySelector('.en-exam');
+
                     return {
                         word: li.getAttribute('word') || li.querySelector('.en-word')?.textContent.trim() || '',
                         imgSrc: img ? 'https://www.essentialenglish.review/' + img.getAttribute('src') : '',
-                        source: 'https://www.essentialenglish.review/' + li.getAttribute('source') || '',
-                        desc: li.querySelector('.en-desc')?.textContent.trim() || '',
-                        example: li.querySelector('.en-exam')?.textContent.replace(/^→\s*/, '').trim() || ''
+                        source: li.getAttribute('source')
+                            ? 'https://www.essentialenglish.review/' + li.getAttribute('source')
+                            : '',
+                        desc: descEl ? keepOnlyStrong(descEl.innerHTML) : '',
+                        example: examEl
+                            ? keepOnlyStrong(
+                                examEl.innerHTML.replace(/^<span[^>]*>→<\/span>\s*/, '')
+                            )
+                            : ''
                     };
                 });
+            }
+
+            function getKeys() {
+                return Array.from(colToggle.querySelectorAll('input:checked'))
+                    .map(cb => cb.dataset.key);
             }
 
             function renderTable(data) {
                 const keys = getKeys();
                 let html = '<table><thead><tr>';
+
                 keys.forEach(k => {
                     html += `<th>${defaultCols.find(c => c.key === k).label}</th>`;
                 });
+
                 html += '</tr></thead><tbody>';
 
                 data.forEach(row => {
@@ -171,21 +217,19 @@
                     });
                     html += '</tr>';
                 });
+
                 html += '</tbody></table>';
                 preview.innerHTML = html;
-            }
-
-            function getKeys() {
-                return Array.from(colToggle.querySelectorAll('input:checked'))
-                    .map(cb => cb.dataset.key);
             }
 
             function toDelimited(data, keys, sep) {
                 return [
                     keys.join(sep),
-                    ...data.map(r => keys.map(k =>
-                        String(r[k] || '').replace(/\r?\n|\t/g, ' ')
-                    ).join(sep))
+                    ...data.map(r =>
+                        keys.map(k =>
+                            String(r[k] || '').replace(/\r?\n|\t/g, ' ')
+                        ).join(sep)
+                    )
                 ].join('\n');
             }
 
@@ -241,11 +285,13 @@
 
             btnDownloadHTML.onclick = () =>
                 downloadFile(
-                    `<!doctype html><html><head><meta charset="utf-8"><title>Wordlist</title></head>
-<body>${preview.innerHTML}</body></html>`,
-                    'text/html', 'html');
+                    `<!doctype html><html><head><meta charset="utf-8"><title>Wordlist</title></head><body>${preview.innerHTML}</body></html>`,
+                    'text/html',
+                    'html'
+                );
 
             createColToggles();
+
         })();
     </script>
 
