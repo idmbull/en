@@ -87,8 +87,8 @@
 
     <div>
         <button id="btnParse" class="primary">Parse</button>
-        <button id="btnCopyCSV">Copy CSV</button>
         <button id="btnCopyTSV">Copy TSV (Excel)</button>
+        <button id="btnCopyCSV">Copy CSV</button>
         <button id="btnDownloadCSV">Export CSV</button>
         <button id="btnDownloadJSON">Export JSON</button>
         <button id="btnDownloadHTML">Export HTML</button>
@@ -179,11 +179,11 @@
                         source: li.getAttribute('source')
                             ? 'https://www.essentialenglish.review/' + li.getAttribute('source')
                             : '',
-                        desc: descEl ? keepOnlyStrong(descEl.innerHTML) : '',
+                        desc: descEl ? keepOnlyStrong(descEl.innerHTML).replace(' </strong>', '</strong> ') : '',
                         example: examEl
                             ? keepOnlyStrong(
                                 examEl.innerHTML.replace(/^<span[^>]*>→<\/span>\s*/, '')
-                            )
+                            ).replace(' </strong>', '</strong> ')
                             : ''
                     };
                 });
