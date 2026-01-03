@@ -7,7 +7,7 @@
 17.460000	19.530000		I will take it away from you."
 20.250000	22.350000		But the people didn't listen.
 
-23.020000	26.380000	When the **season**^[A season is a time of the year	spring, summer, fall, or winter.] changed from spring to summer,
+23.020000	26.380000		When the **season**^[A season is a time of the year: spring, summer, fall, or winter.] changed from spring to summer,
 26.520000	28.590000		the clouds **disappeared**^[To disappear means to go away or not be seen.].
 28.930000	31.070000		The **bright**^[If something is bright, it gives off a lot of light.] sun was hot
 31.080000	32.910000		and made the river dry.
