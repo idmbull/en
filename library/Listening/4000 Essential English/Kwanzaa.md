@@ -1,5 +1,5 @@
 3.490000	9.070000		Kwanzaa is a **seven**^[Seven is the word for the number 7.]-day holiday **celebrated**^[Ăn mừng / Kỷ niệm] in the United States and other countries
-9.100000	11.320000		by people of **African descent**^[gốc Phi.
+9.100000	11.320000		by people of **African descent**^[gốc Phi].
 11.920000	14.570000		It is celebrated **from**^[From shows a starting place or position.] **December**^[December is the twelfth month of the year.] 26
 14.600000	17.080000		to **January**^[January is the first month of the year.] 1 each **year**^[A year is a period of 365 days or twelve months.].
 17.620000	21.390000		The **celebration**^[Sự ăn mừng, lễ kỷ niệm] **is dedicated**^[được dành riêng cho / nhằm mục đích] to **honoring**^[tôn vinh, thể hiện sự kính trọng] African culture
