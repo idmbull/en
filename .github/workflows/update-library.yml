@@ -1,16 +1,13 @@
 name: Update Library JSON
 
-# Cấu hình Trigger: Chạy khi có code push lên nhánh main
-# NHƯNG chỉ chạy khi có thay đổi trong thư mục 'texts' hoặc file script
 on:
   push:
     branches:
-      - main  # Hoặc 'master' tùy tên nhánh chính của bạn
+      - main
     paths:
-      - 'library/**'             # Khi thay đổi nội dung bài tập
-      - 'generate-library.js' # Khi sửa logic tạo file
+      - 'library/**'
+      - 'generate-library.js'
 
-# Cấp quyền ghi (write) để bot có thể commit file json ngược lại vào repo
 permissions:
   contents: write
 
@@ -19,9 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Tải code về máy ảo runner
+      # 1. Tải code về máy (QUAN TRỌNG: Cần fetch-depth: 0)
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # <-- DÒNG QUAN TRỌNG: Tải toàn bộ lịch sử commit để git log hoạt động
 
       # 2. Cài đặt Node.js
       - name: Setup Node.js
@@ -29,14 +28,14 @@ jobs:
         with:
           node-version: '20'
 
-      # 3. Chạy script tạo JSON (File này bạn đã tạo ở bước trước)
+      # 3. Chạy script tạo JSON
       - name: Run generation script
         run: node generate-library.js
 
-      # 4. Commit và Push thay đổi (nếu có)
+      # 4. Commit và Push thay đổi
       - name: Commit & Push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "🤖 Auto-update playlist JSON [skip ci]"
-          file_pattern: 'library.json' # Chỉ commit 2 file này
+          commit_message: "🤖 Auto-update library.json with numbering [skip ci]"
+          file_pattern: 'library.json'
           branch: main
