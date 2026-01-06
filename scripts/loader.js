@@ -55,9 +55,10 @@ export async function loadLibrary() {
                     if (e) e.stopPropagation();
                     document.querySelectorAll('.tree-label').forEach(el => el.classList.remove('active'));
                     label.classList.add('active');
-                    // UI logic (giữ nguyên)
+
                     document.getElementById('playlistContent').classList.add('hidden');
                     const triggerSpan = document.querySelector('#playlistTrigger span');
+                    // Hiển thị tên có số thứ tự trên menu
                     if (triggerSpan) triggerSpan.textContent = item.name;
 
                     try {
@@ -65,15 +66,17 @@ export async function loadLibrary() {
                         const rawText = await response.text();
                         const parsed = parseUnified(rawText);
 
-                        // [THÊM LOGIC TIÊU ĐỀ]
-                        // Nếu trong file không có header #, dùng tên file (bỏ đuôi)
+                        // Tiêu đề bài học dùng tên hiển thị (có số) cho đẹp
                         if (!parsed.title) {
                             parsed.title = removeExtension(item.name);
                         }
 
-                        // Set Audio URL
-                        const fileNameOnly = removeExtension(item.name);
+                        // [SỬA Ở ĐÂY] -----------------------------------------
+                        // Dùng item.fileName (tên gốc) nếu có, để khớp với file Audio trên server
+                        const originalFileName = item.fileName || item.name;
+                        const fileNameOnly = removeExtension(originalFileName);
                         const audioUrl = item.hasAudio ? `${AUDIO_BASE}${fileNameOnly}.mp3` : null;
+                        // -----------------------------------------------------
 
                         Store.setSourceUnified(parsed, item.hasAudio, audioUrl);
                         document.dispatchEvent(new CustomEvent("app:content-loaded"));
