@@ -26,7 +26,7 @@
 63.250000	64.850000		"The kingdom is mine!"
 65.070000	66.580000		Pelias **claimed**^[tuyên bố, khẳng định].
 66.860000	68.700000		"Father will give it to me
-68.810000	71.690000		—or I'll **use force**^[dùng vũ lực] to take it!"
+68.810000	71.690000		— or I'll **use force**^[dùng vũ lực] to take it!"
 
 72.590000	76.500000		Theseus made a **sudden**^[xảy ra nhanh chóng mà không báo trước] move to take out his sword.^[Theseus bất ngờ rút kiếm]
 76.690000	79.100000		Then Pelias did the same.
