@@ -6,145 +6,151 @@
         "name": "4000 Essential English",
         "items": [
           {
-            "name": "01. The Camp.md",
+            "name": "01. A Strong Friendship.md",
+            "fileName": "A Strong Friendship.md",
+            "path": "Listening/4000 Essential English/A Strong Friendship.md",
+            "hasAudio": true
+          },
+          {
+            "name": "02. The Camp.md",
             "fileName": "The Camp.md",
             "path": "Listening/4000 Essential English/The Camp.md",
             "hasAudio": true
           },
           {
-            "name": "02. A Better Reward.md",
+            "name": "03. A Better Reward.md",
             "fileName": "A Better Reward.md",
             "path": "Listening/4000 Essential English/A Better Reward.md",
             "hasAudio": true
           },
           {
-            "name": "03. Katy.md",
+            "name": "04. Katy.md",
             "fileName": "Katy.md",
             "path": "Listening/4000 Essential English/Katy.md",
             "hasAudio": true
           },
           {
-            "name": "04. The Seven Cities of Gold.md",
+            "name": "05. The Seven Cities of Gold.md",
             "fileName": "The Seven Cities of Gold.md",
             "path": "Listening/4000 Essential English/The Seven Cities of Gold.md",
             "hasAudio": true
           },
           {
-            "name": "05. Shipwrecked.md",
+            "name": "06. Shipwrecked.md",
             "fileName": "Shipwrecked.md",
             "path": "Listening/4000 Essential English/Shipwrecked.md",
             "hasAudio": true
           },
           {
-            "name": "06. Eat Healthy!.md",
+            "name": "07. Eat Healthy!.md",
             "fileName": "Eat Healthy!.md",
             "path": "Listening/4000 Essential English/Eat Healthy!.md",
             "hasAudio": true
           },
           {
-            "name": "07. The Race for Water.md",
+            "name": "08. The Race for Water.md",
             "fileName": "The Race for Water.md",
             "path": "Listening/4000 Essential English/The Race for Water.md",
             "hasAudio": true
           },
           {
-            "name": "08. Kwanzaa.md",
+            "name": "09. Kwanzaa.md",
             "fileName": "Kwanzaa.md",
             "path": "Listening/4000 Essential English/Kwanzaa.md",
             "hasAudio": true
           },
           {
-            "name": "09. The Big Race.md",
+            "name": "10. The Big Race.md",
             "fileName": "The Big Race.md",
             "path": "Listening/4000 Essential English/The Big Race.md",
             "hasAudio": true
           },
           {
-            "name": "10. A Magical Book.md",
+            "name": "11. A Magical Book.md",
             "fileName": "A Magical Book.md",
             "path": "Listening/4000 Essential English/A Magical Book.md",
             "hasAudio": true
           },
           {
-            "name": "11. The Taxi Driver.md",
+            "name": "12. The Taxi Driver.md",
             "fileName": "The Taxi Driver.md",
             "path": "Listening/4000 Essential English/The Taxi Driver.md",
             "hasAudio": true
           },
           {
-            "name": "12. The Crazy Artist.md",
+            "name": "13. The Crazy Artist.md",
             "fileName": "The Crazy Artist.md",
             "path": "Listening/4000 Essential English/The Crazy Artist.md",
             "hasAudio": true
           },
           {
-            "name": "13. Keeping Our Earth Clean.md",
+            "name": "14. Keeping Our Earth Clean.md",
             "fileName": "Keeping Our Earth Clean.md",
             "path": "Listening/4000 Essential English/Keeping Our Earth Clean.md",
             "hasAudio": true
           },
           {
-            "name": "14. The First Peacock.md",
+            "name": "15. The First Peacock.md",
             "fileName": "The First Peacock.md",
             "path": "Listening/4000 Essential English/The First Peacock.md",
             "hasAudio": true
           },
           {
-            "name": "15. Service Animals.md",
+            "name": "16. Service Animals.md",
             "fileName": "Service Animals.md",
             "path": "Listening/4000 Essential English/Service Animals.md",
             "hasAudio": true
           },
           {
-            "name": "16. How the Sun and the Moon Were Made.md",
+            "name": "17. How the Sun and the Moon Were Made.md",
             "fileName": "How the Sun and the Moon Were Made.md",
             "path": "Listening/4000 Essential English/How the Sun and the Moon Were Made.md",
             "hasAudio": true
           },
           {
-            "name": "17. Ironman Races.md",
+            "name": "18. Ironman Races.md",
             "fileName": "Ironman Races.md",
             "path": "Listening/4000 Essential English/Ironman Races.md",
             "hasAudio": true
           },
           {
-            "name": "18. The Amalfi Coast.md",
+            "name": "19. The Amalfi Coast.md",
             "fileName": "The Amalfi Coast.md",
             "path": "Listening/4000 Essential English/The Amalfi Coast.md",
             "hasAudio": true
           },
           {
-            "name": "19. The Best Prince.md",
+            "name": "20. The Best Prince.md",
             "fileName": "The Best Prince.md",
             "path": "Listening/4000 Essential English/The Best Prince.md",
             "hasAudio": true
           },
           {
-            "name": "20. The Dog’s Bell.md",
+            "name": "21. The Dog’s Bell.md",
             "fileName": "The Dog’s Bell.md",
             "path": "Listening/4000 Essential English/The Dog’s Bell.md",
             "hasAudio": true
           },
           {
-            "name": "21. The Laboratory.md",
+            "name": "22. The Laboratory.md",
             "fileName": "The Laboratory.md",
             "path": "Listening/4000 Essential English/The Laboratory.md",
             "hasAudio": true
           },
           {
-            "name": "22. The Lion and the Rabbit.md",
+            "name": "23. The Lion and the Rabbit.md",
             "fileName": "The Lion and the Rabbit.md",
             "path": "Listening/4000 Essential English/The Lion and the Rabbit.md",
             "hasAudio": true
           },
           {
-            "name": "23. The Report.md",
+            "name": "24. The Report.md",
             "fileName": "The Report.md",
             "path": "Listening/4000 Essential English/The Report.md",
             "hasAudio": true
           },
           {
-            "name": "24. The Twins.md",
+            "name": "25. The Twins.md",
             "fileName": "The Twins.md",
             "path": "Listening/4000 Essential English/The Twins.md",
             "hasAudio": true
