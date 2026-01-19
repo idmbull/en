@@ -174,8 +174,8 @@
                     [
                         r.word,
                         r.pos,
-                        r.meaningHtml.replace(/\t|\n/g, ' '),
-                        r.exampleHtml.replace(/\t|\n/g, ' '),
+                        r.meaningHtml.replace(/\t|\n/g, ' ').replace(/ <\/strong>/g, '</strong> '),
+                        r.exampleHtml.replace(/\t|\n/g, ' ').replace(/ <\/strong>/g, '</strong> '),
                         r.image
                     ].join('\t')
                 );
