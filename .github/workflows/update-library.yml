@@ -16,26 +16,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Tải code về máy (QUAN TRỌNG: Cần fetch-depth: 0)
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # <-- DÒNG QUAN TRỌNG: Tải toàn bộ lịch sử commit để git log hoạt động
+          fetch-depth: 0
 
-      # 2. Cài đặt Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. Chạy script tạo JSON
       - name: Run generation script
         run: node generate-library.js
 
-      # 4. Commit và Push thay đổi
       - name: Commit & Push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "🤖 Auto-update library.json with numbering [skip ci]"
           file_pattern: 'library.json'
           branch: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
