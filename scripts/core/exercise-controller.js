@@ -132,6 +132,25 @@ export class ExerciseController {
                 return;
             }
 
+                        if (e.code === "Tab") {
+                e.preventDefault(); // Ngăn việc Tab chuyển focus sang phần tử khác
+                if (e.repeat) return; // Ngăn việc giữ phím gây spam
+
+                if (this.ctrlSpaceTimer) {
+                    clearTimeout(this.ctrlSpaceTimer);
+                    this.ctrlSpaceTimer = null;
+                    // Double Tab -> Replay word
+                    this.callbacks.onCtrlSpaceDouble();
+                } else {
+                    this.ctrlSpaceTimer = setTimeout(() => {
+                        // Single Tab -> Play Segment (hoặc Replay word nếu không có audio)
+                        this.callbacks.onCtrlSpaceSingle();
+                        this.ctrlSpaceTimer = null;
+                    }, 300); // Thời gian chờ để nhận diện double tap (300ms)
+                }
+                return;
+            }
+
             if (e.ctrlKey && e.code === "KeyB") {
                 e.preventDefault();
                 const newState = !Store.isBlind();
@@ -248,4 +267,5 @@ export class ExerciseController {
             DOM.textInput.focus();
         }
     }
+
 }
