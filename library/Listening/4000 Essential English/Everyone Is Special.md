@@ -38,7 +38,7 @@
 104.610000	105.560000		I said."
 106.120000	107.590000		That's not true!"
 107.550000	108.760000		said my mom.
-108.910000	110.370000		"See my fingers ....
+108.910000	110.370000		"See my fingers...
 110.490000	111.970000		each one is different.
 112.230000	114.380000		You kids are like my fingers:
 114.460000	115.740000		all are different,
