@@ -154,6 +154,9 @@ export function initController() {
         });
 
         DOM.textContainer.addEventListener('click', () => {
+            // [FIX] Nếu người dùng đang bôi đen văn bản thì KHÔNG focus vào input
+            if (window.getSelection().toString().length > 0) return;
+
             DOM.textInput.focus();
             setTimeout(syncInputPosition, 0);
         });

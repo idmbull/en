@@ -132,7 +132,7 @@ export class ExerciseController {
                 return;
             }
 
-                        if (e.code === "Tab") {
+            if (e.code === "Tab") {
                 e.preventDefault(); // Ngăn việc Tab chuyển focus sang phần tử khác
                 if (e.repeat) return; // Ngăn việc giữ phím gây spam
 
@@ -167,6 +167,9 @@ export class ExerciseController {
 
         // Click bất kỳ đâu cũng focus vào ô input (trừ khi click vào nút/input khác)
         document.onclick = (e) => {
+            // [FIX] Nếu đang bôi đen văn bản thì KHÔNG cướp focus (tránh làm mất highlight)
+            if (window.getSelection().toString().length > 0) return;
+
             const t = e.target.tagName;
             if (!["BUTTON", "SELECT", "TEXTAREA", "INPUT", "LABEL"].includes(t)) {
                 this.refocus();

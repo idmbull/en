@@ -63,4 +63,12 @@ export const DOM = {
     get resErr() { return $('#resErr'); },
     get btnReplay() { return $('#btnReplay'); },
     get btnNext() { return $('#btnNext'); },
+
+    // Vocab Feature
+    get vocabBtn() { return $('#vocabBtn'); },
+    get floatingHighlightBtn() { return $('#floatingHighlightBtn'); },
+    get vocabModal() { return $('#vocabModal'); },
+    get vocabCloseBtn() { return $('#vocabCloseBtn'); },
+    get vocabList() { return $('#vocabList'); },
+    get vocabExportBtn() { return $('#vocabExportBtn'); },
 };

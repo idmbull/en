@@ -98,6 +98,7 @@
         </div>
 
         <footer>
+            <button id="vocabBtn" class="btn-icon" title="Danh sách từ vựng">📝 Vocab</button>
             <input type="file" id="fileLoader" accept=".txt,.md,.json,.tsv,.mp3" hidden multiple>
             <button id="fileLoaderBtn" class="btn-icon">📂 Load</button>
 
@@ -176,6 +177,32 @@
         </div>
     </div>
     <div id="globalTooltip"></div>
+    <!-- Nút nổi khi bôi đen văn bản -->
+    <div id="floatingHighlightBtn" class="floating-btn hidden">
+        ✨ Lưu từ
+    </div>
+
+    <!-- Modal Danh sách từ vựng -->
+    <div id="vocabModal" class="modal hidden">
+        <div class="modal-content"
+            style="width: 450px; text-align: left; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">📝 Từ vựng đã lưu</h2>
+                <button id="vocabCloseBtn" class="btn-icon" style="padding: 4px 10px;">✕</button>
+            </div>
+
+            <div class="vocab-list-container" style="overflow-y: auto; flex: 1; margin-bottom: 20px;">
+                <ul id="vocabList" class="vocab-list">
+                    <!-- Danh sách từ vựng sẽ được render ở đây -->
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <button id="vocabExportBtn" class="btn-icon"
+                    style="background: var(--accent-gradient); color: white; border: none;">📥 Tải về (.txt)</button>
+            </div>
+        </div>
+    </div>
     <audio id="player" class="hidden"></audio>
     <script type="module" src="scripts/app.js"></script>
 </body>

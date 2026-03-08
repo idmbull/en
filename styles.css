@@ -1207,6 +1207,110 @@ select:focus {
     display: none !important;
 }
 
+/* ==========================================================================
+   12. VOCABULARY FEATURE
+   ========================================================================== */
+
+/* Nút nổi (Floating Button) khi bôi đen */
+.floating-btn {
+    position: absolute;
+    background: var(--accent-gradient);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    pointer-events: auto;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.floating-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.floating-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px) scale(0.95);
+}
+
+/* Danh sách từ vựng */
+.vocab-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.vocab-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--section-bg);
+    margin-bottom: 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.vocab-item:hover {
+    background: var(--container-bg);
+    border-color: var(--accent-color);
+}
+
+.vocab-word {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.vocab-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s;
+    margin-left: 8px;
+}
+
+.vocab-actions button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.vocab-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Hiệu ứng khi rê chuột vào từ trong danh sách */
+.vocab-word.jump-link {
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-bottom-color 0.2s;
+}
+
+.vocab-word.jump-link:hover {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+/* Hiệu ứng nhấp nháy đoạn văn bản khi nhảy đến */
+.vocab-flash {
+    background-color: var(--accent-color) !important;
+    color: var(--text-light) !important;
+    border-radius: 4px;
+    box-shadow: 0 0 10px var(--accent-color);
+    transition: background-color 0.5s ease-out, box-shadow 0.5s ease-out;
+}
+
 /* --- RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
 

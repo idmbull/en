@@ -8,6 +8,7 @@ import { SuperAudioPlayer } from "./superAudioPlayer.js";
 import { replayLastWord, enqueueSpeak } from "./audio.js";
 import { EventBus, EVENTS } from "./core/events.js";
 import { setupDragDrop } from "./utils/drag-drop.js";
+import { initVocabUI, saveHighlightedWord, clearVocabList } from "./vocab.js";
 
 const superPlayer = new SuperAudioPlayer();
 let mainController;
@@ -216,6 +217,64 @@ export async function initApp() {
 
         }
     });
+
+    // =========================================================
+    // KHỞI TẠO TÍNH NĂNG TỪ VỰNG & BẮT SỰ KIỆN BÔI ĐEN
+    // =========================================================
+    initVocabUI();
+
+    let selectedWordData = null; // Lưu trữ cả chữ và vị trí index
+
+    DOM.textDisplay.addEventListener("mouseup", (e) => {
+        setTimeout(() => {
+            const selection = window.getSelection();
+            const text = selection.toString().trim();
+
+            if (text.length > 0 && text.length < 50) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+
+                // Lấy thẻ <span> bắt đầu của vùng bôi đen
+                let startNode = range.startContainer;
+                // Nếu browser trả về TextNode (loại 3), ta lấy phần tử cha là thẻ <span>
+                if (startNode.nodeType === 3) startNode = startNode.parentElement;
+
+                // Tìm vị trí của thẻ <span> này trong mảng dữ liệu
+                const spans = Store.getState().textSpans;
+                const startIndex = spans.indexOf(startNode);
+
+                // Lưu tạm dữ liệu chờ bấm nút
+                selectedWordData = { word: text, index: startIndex };
+
+                DOM.floatingHighlightBtn.style.top = `${rect.top - 40}px`;
+                DOM.floatingHighlightBtn.style.left = `${rect.left + (rect.width / 2) - 45}px`;
+                DOM.floatingHighlightBtn.classList.remove("hidden");
+            } else {
+                DOM.floatingHighlightBtn.classList.add("hidden");
+                selectedWordData = null;
+            }
+        }, 50);
+    });
+
+    document.addEventListener("mousedown", (e) => {
+        if (e.target !== DOM.floatingHighlightBtn) {
+            DOM.floatingHighlightBtn.classList.add("hidden");
+        }
+    });
+
+    DOM.floatingHighlightBtn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        // Gọi hàm lưu từ vựng kèm theo vị trí Index
+        if (selectedWordData && selectedWordData.index !== -1) {
+            saveHighlightedWord(selectedWordData.word, selectedWordData.index);
+        }
+    });
+
+    // Reset danh sách từ vựng khi load bài tập mới
+    document.addEventListener("app:content-loaded", () => {
+        clearVocabList();
+    });
+    // =========================================================
 
     // =========================================================
 
