@@ -81,8 +81,46 @@ function updatePlayAllIcon(isPlaying) {
     }
 }
 
+// =========================================================
+// HÀM TỰ ĐỘNG ẨN CON TRỎ CHUỘT
+// =========================================================
+function initCursorHider() {
+    let cursorTimer = null;
+
+    const showCursor = () => {
+        // Hiện lại con trỏ
+        document.body.classList.remove('hide-cursor');
+
+        // Hủy bỏ bộ đếm cũ nếu có
+        if (cursorTimer) {
+            clearTimeout(cursorTimer);
+        }
+
+        // Thiết lập bộ đếm mới: Nếu 2.5 giây không di chuyển chuột thì ẩn đi
+        cursorTimer = setTimeout(() => {
+            document.body.classList.add('hide-cursor');
+        }, 2500);
+    };
+
+    // Khi người dùng rê chuột -> Bật lại con trỏ và bắt đầu đếm giờ
+    document.addEventListener('mousemove', showCursor);
+
+    // Khi người dùng bắt đầu gõ phím -> Ẩn con trỏ NGAY LẬP TỨC
+    document.addEventListener('keydown', (e) => {
+        // Nếu nhấn các phím chức năng (Ctrl, Alt, Shift) thì bỏ qua, chỉ ẩn khi thực sự gõ hoặc Space/Enter
+        if (e.key === 'Control' || e.key === 'Shift' || e.key === 'Alt' || e.key === 'Meta') return;
+
+        document.body.classList.add('hide-cursor');
+        if (cursorTimer) {
+            clearTimeout(cursorTimer);
+        }
+    });
+}
+
 export async function initApp() {
     initController();
+    // Khởi chạy tính năng ẩn chuột
+    initCursorHider();
 
     if (DOM.volumeInput) {
         superPlayer.setVolume(parseFloat(DOM.volumeInput.value));
