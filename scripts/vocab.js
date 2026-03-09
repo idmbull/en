@@ -52,23 +52,37 @@ function jumpToWord(startIndex, wordLength) {
             const currentSpan = spans[startIndex + i];
             if (currentSpan) {
                 currentSpan.classList.add('vocab-flash');
-                // Xóa hiệu ứng sau 2 giây
                 setTimeout(() => currentSpan.classList.remove('vocab-flash'), 2000);
             }
         }
     }
+
+    // [FIX] Tự động Focus lại ô nhập liệu sau khi nhảy đến từ để gõ tiếp
+    setTimeout(() => {
+        if (DOM.textInput && !DOM.textInput.disabled) {
+            DOM.textInput.focus();
+        }
+    }, 0);
 }
 
 // 3. Xử lý UI
 export function saveHighlightedWord(word, startIndex) {
     const success = saveWordToMemory(word, startIndex);
+
+    // [FIX] Ngay lập tức xóa bôi đen và trả lại Focus để bạn có thể gõ chữ liền mà không cần đợi 1 giây
+    window.getSelection().removeAllRanges();
+    setTimeout(() => {
+        if (DOM.textInput && !DOM.textInput.disabled) {
+            DOM.textInput.focus();
+        }
+    }, 0);
+
     if (success) {
         DOM.floatingHighlightBtn.textContent = "✔️ Đã lưu";
         setTimeout(() => {
             DOM.floatingHighlightBtn.textContent = "✨ Lưu từ";
             DOM.floatingHighlightBtn.classList.add("hidden");
-            window.getSelection().removeAllRanges();
-        }, 1000);
+        }, 1000); // Popup chữ vẫn hiện 1s rồi mới tắt
     } else {
         DOM.floatingHighlightBtn.textContent = "Đã có trong list!";
         setTimeout(() => {
@@ -142,6 +156,31 @@ export function initVocabUI() {
             DOM.vocabModal.classList.remove("hidden");
         };
     }
-    if (DOM.vocabCloseBtn) DOM.vocabCloseBtn.onclick = () => DOM.vocabModal.classList.add("hidden");
-    if (DOM.vocabExportBtn) DOM.vocabExportBtn.onclick = exportVocab;
+
+    //[FIX] Hàm đóng Modal gộp chung Focus
+    const closeModalAndFocus = () => {
+        DOM.vocabModal.classList.add("hidden");
+        setTimeout(() => {
+            if (DOM.textInput && !DOM.textInput.disabled) {
+                DOM.textInput.focus();
+            }
+        }, 0);
+    };
+
+    if (DOM.vocabCloseBtn) {
+        DOM.vocabCloseBtn.onclick = closeModalAndFocus;
+    }
+
+    if (DOM.vocabExportBtn) {
+        DOM.vocabExportBtn.onclick = exportVocab;
+    }
+
+    // Đóng khi bấm ra ngoài vùng xám của Modal
+    if (DOM.vocabModal) {
+        DOM.vocabModal.addEventListener('click', (e) => {
+            if (e.target === DOM.vocabModal) {
+                closeModalAndFocus();
+            }
+        });
+    }
 }
