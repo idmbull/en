@@ -1311,6 +1311,18 @@ select:focus {
     transition: background-color 0.5s ease-out, box-shadow 0.5s ease-out;
 }
 
+/* ==========================================================================
+   13. AUTO HIDE CURSOR
+   ========================================================================== */
+.hide-cursor {
+    cursor: none !important;
+}
+
+/* Ép tất cả các phần tử con cũng ẩn chuột để tránh hiện tượng chuột nhấp nháy khi lướt qua các nút */
+.hide-cursor * {
+    cursor: none !important;
+}
+
 /* --- RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
 
