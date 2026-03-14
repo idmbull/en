@@ -1,5 +1,5 @@
-3.350000	7.570000		**Impressionism**^[Trường phái ấn tượng] is a **movement**^[phong trào] that began in France in the late 19th century.
-7.870000	11.060000		It **is considered to be**^[được coi là] the first modern art movement,
+3.350000	7.570000		**Impressionism**^[Trường phái ấn tượng] is a **movement**^[trào lưu] that began in France in the late 19th century.
+7.870000	11.060000		It **is considered to be**^[được coi là] the **first modern art movement**^[trào lưu đầu tiên trong nghệ thuật hội họa hiện đại],
 10.980000	13.870000		as it was seen as a departure from other art.
 14.250000	18.230000		This is because it **violated**^[vi phạm / phá vỡ] the **established rules**^[quy tắc lâu đời (đã được thiết lập)] of **academic**^[học thuật] painting.
 
@@ -31,7 +31,7 @@
 90.420000	94.510000		Another difference between impressionist paintings and traditional paintings
 94.480000	95.920000		is the **subject matter**^[chủ đề / nội dung chính của một tác phẩm].
 96.440000	97.870000		During that time period,
-97.910000	101.790000		the accepted subjects were historical or literary-themes.
+97.910000	101.790000		the accepted subjects were historical or literary themes.
 102.040000	105.530000		They were often based on religious or **mythological subjects**^[chủ đề thần thoại].
 106.410000	111.010000		Impressionists, on the other hand, preferred landscapes and **contemporary life**^[cuộc sống đương đại].
 111.410000	115.770000		They often painted outdoors, using the sunlight to **depict**^[to show an image of somebody/something in a picture] a brighter style.
