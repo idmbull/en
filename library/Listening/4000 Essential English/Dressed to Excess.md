@@ -8,7 +8,7 @@
 29.310000	33.970000		Ladies even used **pads**^[miếng lót, miếng đệm] to **enlarge**^[To enlarge something means to make it bigger.] the appearance of their **hips**^[hông] and shoulders.
 34.770000	36.180000		On the other **extreme**^[thái cực, cực điểm (Chỉ điểm tận cùng / mức cao nhất hoặc thấp nhất của một thứ gì đó.)],
 36.230000	40.180000		the aristocratic women made their **waists**^[vòng eo] appear extremely thin.
-40.200000	47.010000		It took several **maids**^[hầu gái] **stretching fabric**^[kéo căng vài] and pulling **straps**^[dây đai] in order to get a lady's waist to the **proper thinness**^[sự thon gọn phù hợp, thích hợp].
+40.200000	47.010000		It took several **maids**^[hầu gái] **stretching fabric**^[kéo căng vài] and pulling **straps**^[dây dùng để kéo, siết] in order to get a lady's waist to the **proper thinness**^[sự thon gọn phù hợp, thích hợp].
 47.180000	50.570000		These ladies could barely breathe and often **fainted**^[ngất xỉu].
 
 51.210000	53.580000		Pale skin was also a **craze**^[A craze is a brief and popular activity or object.],
