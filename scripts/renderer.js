@@ -4,21 +4,19 @@ import { Store } from "./core/store.js";
 import { wrapChars, convertInlineFootnotes } from "./utils.js";
 import { EventBus, EVENTS } from "./core/events.js";
 
-// [MODIFIED] Hàm tách từ thông minh hỗ trợ CJK (Chinese-Japanese-Korean)
 const REGEX_KOREAN = /[\uAC00-\uD7AF]/;
 const REGEX_CHINESE = /[\u4e00-\u9fa5]/;
 
 function computeMetadata(text) {
     const tokens = [];
-    const starts = [];
+    const starts =[];
 
     if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-        // [SỬA ĐỔI] Tự động chọn ngôn ngữ cho bộ tách từ
         let lang = 'en';
         if (REGEX_KOREAN.test(text)) {
-            lang = 'ko'; // Tiếng Hàn
+            lang = 'ko'; 
         } else if (REGEX_CHINESE.test(text)) {
-            lang = 'zh-CN'; // Tiếng Trung
+            lang = 'zh-CN'; 
         }
 
         const segmenter = new Intl.Segmenter(lang, { granularity: 'word' });
@@ -31,8 +29,6 @@ function computeMetadata(text) {
             }
         }
     } else {
-        // Fallback cũ (giữ nguyên hoặc thêm regex tiếng Hàn vào nếu cần hỗ trợ browser cổ)
-        // Với tiếng Hàn hiện đại, Intl.Segmenter là bắt buộc để tách đúng.
         const re = /[a-z0-9\u4e00-\u9fa5\uAC00-\uD7AF]+(?:[,'./-][a-z0-9\u4e00-\u9fa5\uAC00-\uD7AF]+)*/gi;
         let m;
         while ((m = re.exec(text)) !== null) {
@@ -49,16 +45,14 @@ export function displayText(rawHtmlOrMarkdown) {
     const withFootnotes = convertInlineFootnotes(rawHtmlOrMarkdown);
     DOM.textDisplay.innerHTML = marked.parse(withFootnotes);
 
-    // Tính toán token ngay sau khi render text
     const tokens = computeMetadata(Store.getSource().text || "");
 
-    // Preload audio cho 5 từ đầu tiên
     if (tokens.length > 0) {
         EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(0, 5));
     }
 
     const walker = document.createTreeWalker(DOM.textDisplay, NodeFilter.SHOW_TEXT);
-    const nodesToReplace = [];
+    const nodesToReplace =[];
 
     while (walker.nextNode()) {
         const node = walker.currentNode;
@@ -88,19 +82,35 @@ export function displayText(rawHtmlOrMarkdown) {
         while (prev && (prev.tagName === 'BR' || prev.classList.contains('visual-break'))) {
             prev = prev.previousElementSibling;
         }
+        
         if (!prev || prev.classList.contains('visual-header')) {
             span.remove();
         } else if (/^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(prev.tagName)) {
+            
+            // Lấy ký tự cuối cùng trước khi append ký tự Enter
+            const lastCharNode = prev.lastElementChild;
+            
             prev.appendChild(span);
             if (span.nextElementSibling?.classList.contains('visual-break')) {
                 prev.appendChild(span.nextElementSibling);
+            }
+
+            // [MODIFIED] Gói ký tự cuối cùng và ký tự Enter vào một thẻ nowrap 
+            // để đảm bảo 100% không bao giờ rớt dòng độc lập
+            if (lastCharNode && lastCharNode.tagName === 'SPAN') {
+                const wrapper = document.createElement('span');
+                wrapper.className = 'nowrap-group';
+                wrapper.style.whiteSpace = 'nowrap';
+                
+                prev.insertBefore(wrapper, lastCharNode);
+                wrapper.appendChild(lastCharNode);
+                wrapper.appendChild(span);
             }
         }
     });
 
     DOM.textDisplay.querySelectorAll(':scope > br').forEach(br => br.remove());
 
-    // Logic đồng bộ Spans (Self-Healing)
     const rawSpans = Array.from(DOM.textDisplay.querySelectorAll("span")).filter(s =>
         !s.children.length &&
         !s.classList.contains('tooltip-word') &&
@@ -110,7 +120,7 @@ export function displayText(rawHtmlOrMarkdown) {
     );
 
     const sourceText = Store.getSource().text;
-    const verifiedSpans = [];
+    const verifiedSpans =[];
     let textIdx = 0;
 
     for (const span of rawSpans) {
@@ -127,7 +137,6 @@ export function displayText(rawHtmlOrMarkdown) {
         } else if (effectiveSpanChar === ' ' && expectedChar !== ' ') {
             // Phantom space -> Ignore
         } else {
-            // Mismatch -> Vẫn push để không gãy index
             verifiedSpans.push(span);
             textIdx++;
         }
