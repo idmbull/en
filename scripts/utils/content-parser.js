@@ -1,7 +1,17 @@
-// scripts/utils/content-parser.js
 import { convertMarkdownToPlain } from "../utils.js";
 
 const TIMESTAMP_REGEX = /^([\d.]+)\s+([\d.]+)/;
+
+// [CẬP NHẬT] Kiểm tra ký tự CJK mở rộng
+// \u2000-\u206f: General Punctuation (QUAN TRỌNG: Chứa “ ” ‘ ’ … —)
+// \u3000-\u303f: CJK Symbols and Punctuation (Dấu câu CJK 。 、 【 】)
+// \uff00-\uffef: Fullwidth Forms (Dấu câu toàn khổ ： ！ ？ ，)
+// \u4e00-\u9fa5: CJK Unified Ideographs (Chữ Hán)
+// \uac00-\ud7af: Hangul (Tiếng Hàn)
+function isCJK(char) {
+    if (!char) return false;
+    return /[\u2000-\u206f\u3000-\u303f\uff00-\uffef\u4e00-\u9fa5\uac00-\ud7af]/.test(char);
+}
 
 // Hàm làm sạch cơ bản cho metadata
 function cleanText(text) {
@@ -10,7 +20,7 @@ function cleanText(text) {
         .replace(/&nbsp;/gi, " ")
         .replace(/\u00A0/g, " ")
         .replace(/[‘’]/g, "'")
-        .replace(/[“”]/g, "\"")
+        // .replace(/[“”]/g, "\"")
         .replace(/[—–]/g, "-")
         .replace(/ …/g, "...")
         .replace(/…/g, "...")
@@ -27,7 +37,6 @@ function cleanForTyping(text) {
     s = s.replace(/\^\[[^\]]+\]/g, '');
 
     // 2. Loại bỏ Skipped Text: `content`
-    // Thay thế bằng chuỗi rỗng, giữ nguyên khoảng trắng xung quanh nó
     s = s.replace(/`[^`]+`/g, '');
 
     // 3. Loại bỏ định dạng Markdown
@@ -37,7 +46,6 @@ function cleanForTyping(text) {
     s = s.replace(/[\r\n\t]+/g, ' ');
 
     // 5. Gộp nhiều dấu cách liên tiếp thành 1 
-    // QUAN TRỌNG: Không dùng trim() ở đây để bảo toàn khoảng trắng dẫn đầu/cuối của fragment
     s = s.replace(/\s+/g, ' ');
 
     return s;
@@ -65,10 +73,8 @@ export function parseUnified(rawContent) {
     let blocks = [];
     let isDictation = lines.some(line => TIMESTAMP_REGEX.test(line.trim()));
 
-    // BƯỚC 1: Phân tách Blocks
     lines.forEach(line => {
         const trimmed = line.trim();
-        // Giữ lại dòng trống để tạo paragraph break
         if (!trimmed) {
             if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'break') {
                 blocks.push({ type: 'break' });
@@ -90,12 +96,8 @@ export function parseUnified(rawContent) {
         }
     });
 
-    // BƯỚC 2: Lắp ráp dữ liệu (Assemble)
     assembleData(blocks, result);
 
-    // BƯỚC 3: Chuẩn hóa lần cuối
-    // [FIX QUAN TRỌNG] Chỉ trimEnd(). 
-    // Nếu trimStart(), ta sẽ xóa mất khoảng trắng mà người dùng nhìn thấy trên màn hình (do skipped text để lại).
     if (result.text) {
         result.text = result.text.trimEnd();
     }
@@ -137,12 +139,15 @@ function formatHtmlContent(text) {
 
 function assembleData(blocks, result) {
     let currentParagraphHtml = "";
+    let lastBlockWasBreak = false;
+    let lastRawChar = null;
 
     const flushParagraph = () => {
         if (currentParagraphHtml) {
             result.html += `<p>${currentParagraphHtml}</p>`;
             result.html += '<span class="newline-char">↵</span>';
             currentParagraphHtml = "";
+            lastRawChar = null;
         }
     };
 
@@ -152,24 +157,16 @@ function assembleData(blocks, result) {
             if (block.type === 'header') {
                 result.html += `<h3 class="visual-header">${block.content}</h3>`;
             }
+            lastBlockWasBreak = true;
             return;
         }
 
-        // Xử lý Text cho Engine
+        // --- 1. XỬ LÝ TEXT CHO TYPING ENGINE (result.text) ---
         const cleanFragment = cleanForTyping(block.content);
-
-        // Kiểm tra xem sau khi lọc, block này có còn nội dung gõ không
-        // (Lưu ý: " " vẫn tính là có nội dung để nối từ)
         const hasTypingContent = cleanFragment.length > 0 && cleanFragment.trim().length > 0;
-
-        // Trường hợp đặc biệt: Dòng chỉ chứa Skipped Text (ví dụ: `Hidden`)
-        // cleanFragment sẽ là "" hoặc " ".
-        // Ta cần đảm bảo nó đóng vai trò như một separator (dấu cách) để không dính chữ.
         const isSkippedLine = !hasTypingContent && block.content.trim().length > 0;
 
         if (hasTypingContent) {
-            // Logic nối chuỗi thông minh:
-            // Thêm dấu cách nếu text cũ chưa có và text mới không bắt đầu bằng dấu cách
             let prefix = "";
             if (result.text.length > 0) {
                 const endsWithSpace = result.text.endsWith(" ");
@@ -177,6 +174,13 @@ function assembleData(blocks, result) {
 
                 if (!endsWithSpace && !startsWithSpace) {
                     prefix = " ";
+                    if (!lastBlockWasBreak) {
+                        const lastChar = result.text[result.text.length - 1];
+                        const firstChar = cleanFragment[0];
+                        if (isCJK(lastChar) && isCJK(firstChar)) {
+                            prefix = "";
+                        }
+                    }
                 }
             }
 
@@ -190,20 +194,38 @@ function assembleData(blocks, result) {
                     text: cleanFragment.trim()
                 });
             }
+            lastBlockWasBreak = false;
         }
         else if (isSkippedLine) {
-            // Nếu là dòng Skipped, chỉ thêm dấu cách vào result.text nếu chưa có.
-            // Điều này giúp tách dòng trước và dòng sau.
             if (result.text.length > 0 && !result.text.endsWith(" ")) {
                 result.text += " ";
             }
+            lastBlockWasBreak = false;
         }
 
-        // Xử lý HTML
+        // --- 2. XỬ LÝ HIỂN THỊ HTML (result.html) ---
         const speakerHtml = block.speaker ? `<span class="speaker-label">${block.speaker}: </span>` : "";
         const contentHtml = formatHtmlContent(block.content);
-        const htmlPrefix = currentParagraphHtml ? " " : "";
+
+        let htmlPrefix = "";
+
+        if (currentParagraphHtml) {
+            htmlPrefix = " ";
+
+            if (lastRawChar && block.content) {
+                const firstChar = block.content[0];
+                // Cập nhật: Kiểm tra CJK với cả các dấu ngoặc kép, gạch ngang...
+                if (!block.speaker && isCJK(lastRawChar) && isCJK(firstChar)) {
+                    htmlPrefix = "";
+                }
+            }
+        }
+
         currentParagraphHtml += `${htmlPrefix}${speakerHtml}${contentHtml}`;
+
+        if (block.content && block.content.length > 0) {
+            lastRawChar = block.content[block.content.length - 1];
+        }
     });
 
     flushParagraph();
