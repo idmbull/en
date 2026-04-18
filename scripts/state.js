@@ -64,7 +64,9 @@ export const DOM = {
     get btnReplay() { return $('#btnReplay'); },
     get btnNext() { return $('#btnNext'); },
 
-    // Vocab Feature
+    // Features
+    get editBtn() { return $('#editBtn'); },
+    get shareBtn() { return $('#shareBtn'); },
     get vocabBtn() { return $('#vocabBtn'); },
     get floatingHighlightBtn() { return $('#floatingHighlightBtn'); },
     get vocabModal() { return $('#vocabModal'); },

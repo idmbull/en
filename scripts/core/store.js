@@ -4,18 +4,19 @@ const INITIAL_STATE = {
     isActive: false,
     isAudioMode: false, // Tự động bật khi bài tập có audio
     blindMode: false,
+    currentLessonPath: null, // [NEW] Lưu path của bài học hiện tại để share link
     source: {
         title: "",
         text: "",
         html: "",
         segments: [],
-        charStarts: [],
+        charStarts:[],
         currentSegment: 0,
         audioUrl: null
     },
     textSpans: [],
     wordTokens: [],
-    wordStarts: [],
+    wordStarts:[],
     startTime: null,
     statTotalKeys: 0,
     statCorrectKeys: 0,
@@ -33,11 +34,13 @@ export const Store = {
     // Logic: Nếu có file audio hoặc có segments (timestamp) -> Là Audio Mode
     isAudio: () => state.isAudioMode,
     isBlind: () => state.blindMode,
+    getCurrentLessonPath: () => state.currentLessonPath,
 
-    setSourceUnified(data, hasAudio, audioUrl) {
+    setSourceUnified(data, hasAudio, audioUrl, lessonPath = null) {
         this.reset(); // Reset trước khi nạp mới
         state.isAudioMode = hasAudio || (data.segments && data.segments.length > 0);
         state.source = { ...data, audioUrl, currentSegment: 0 };
+        state.currentLessonPath = lessonPath; // Gán path của file thư viện
 
         // Emit event để UI cập nhật (hiện/ẩn volume controller)
         document.dispatchEvent(new CustomEvent("store:source-changed", {
@@ -51,7 +54,7 @@ export const Store = {
         state.isActive = false;
         state.startTime = null;
 
-        // [FIX] Bổ sung dòng này để xóa thời gian kết thúc cũ
+        // Bổ sung dòng này để xóa thời gian kết thúc cũ
         state.endTime = null;
 
         state.statTotalKeys = 0;
@@ -63,9 +66,9 @@ export const Store = {
         // Đảm bảo currentSegment reset về 0 (nếu cần thiết, tuỳ logic bài)
         state.source.currentSegment = 0;
 
-        state.textSpans = [];
+        state.textSpans =[];
         state.wordTokens = [];
-        state.wordStarts = [];
+        state.wordStarts =[];
     },
 
 

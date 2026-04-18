@@ -4,10 +4,10 @@ import { Store } from "./core/store.js";
 import { getScroller } from "./input-controller.js";
 
 // 1. Quản lý dữ liệu trên RAM (Tự động reset khi F5 trang)
-let sessionVocabList = [];
+let sessionVocabList =[];
 
 export function clearVocabList() {
-    sessionVocabList = [];
+    sessionVocabList =[];
     if (DOM.vocabList) DOM.vocabList.innerHTML = "";
 }
 
@@ -139,14 +139,81 @@ export function exportVocab() {
         alert("Danh sách trống!");
         return;
     }
-    const textData = sessionVocabList.map(i => i.word).join("\n");
+
+    const source = Store.getSource();
+    const hasAudio = Store.isAudio();
+    const charStarts = source.charStarts || [];
+    const segments = source.segments ||[];
+
+    let textData = "";
+
+    // Sắp xếp danh sách từ vựng theo thứ tự xuất hiện trong bài đọc
+    const sortedList = [...sessionVocabList].sort((a, b) => a.index - b.index);
+
+    sortedList.forEach(item => {
+        let startTime = "";
+        let endTime = "";
+
+        if (hasAudio && segments.length > 0) {
+            let segIdx = 0;
+            // Tìm đoạn segment mà từ vựng thuộc về
+            for (let i = charStarts.length - 1; i >= 0; i--) {
+                if (item.index >= charStarts[i]) {
+                    segIdx = i;
+                    break;
+                }
+            }
+            const seg = segments[segIdx];
+            if (seg) {
+                // Ép định dạng 6 số thập phân
+                startTime = parseFloat(seg.audioStart).toFixed(6) + "\t";
+                endTime = parseFloat(seg.audioEnd).toFixed(6) + "\t";
+            }
+        }
+
+        textData += `${startTime}${endTime}${item.word}\n`;
+    });
+
+    // --- TẠO FILE TXT ---
     const blob = new Blob([textData], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "Tu_vung_IDM.txt";
+    a.download = source.title ? `Tu_vung_${source.title}.txt` : "Tu_vung_IDM.txt";
     a.click();
     URL.revokeObjectURL(url);
+
+    // --- TẢI THÊM AUDIO FILE (NẾU CÓ) ---
+    if (hasAudio && source.audioUrl) {
+        const originalBtnText = DOM.vocabExportBtn.textContent;
+        DOM.vocabExportBtn.textContent = "⏳ Đang tải Audio...";
+        DOM.vocabExportBtn.disabled = true;
+
+        fetch(source.audioUrl)
+            .then(res => res.blob())
+            .then(audioBlob => {
+                const audioBlobUrl = URL.createObjectURL(audioBlob);
+                const audioA = document.createElement("a");
+                audioA.href = audioBlobUrl;
+                
+                // Trích xuất đuôi file từ url (.mp3, .wav, ...)
+                const extMatch = source.audioUrl.match(/\.[a-zA-Z0-9]+$/);
+                const ext = extMatch ? extMatch[0] : ".mp3";
+                
+                audioA.download = source.title ? `${source.title}${ext}` : `audio${ext}`;
+                audioA.click();
+                URL.revokeObjectURL(audioBlobUrl);
+            })
+            .catch(err => {
+                console.error("Lỗi khi tải file audio:", err);
+                // Fallback nếu có lỗi CORS, mở tab mới cho browser xử lý
+                window.open(source.audioUrl, '_blank');
+            })
+            .finally(() => {
+                DOM.vocabExportBtn.textContent = originalBtnText;
+                DOM.vocabExportBtn.disabled = false;
+            });
+    }
 }
 
 export function initVocabUI() {
@@ -157,7 +224,7 @@ export function initVocabUI() {
         };
     }
 
-    //[FIX] Hàm đóng Modal gộp chung Focus
+    // Hàm đóng Modal gộp chung Focus
     const closeModalAndFocus = () => {
         DOM.vocabModal.classList.add("hidden");
         setTimeout(() => {

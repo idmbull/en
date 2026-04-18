@@ -23,6 +23,11 @@ export async function loadLibrary() {
         container.innerHTML = '';
         const rootUl = document.createElement('ul');
         rootUl.className = 'tree-ul expanded';
+        
+        // [NEW] Đọc tham số từ URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetPath = urlParams.get('lesson');
+        let targetFileEl = null;
 
         const createItem = (item) => {
             const li = document.createElement('li');
@@ -35,6 +40,11 @@ export async function loadLibrary() {
                 label.innerHTML = `<span class="tree-arrow">▶</span> 📁 ${item.name}`;
                 const ul = document.createElement('ul');
                 ul.className = 'tree-ul';
+
+                // Tự động mở folder nếu chứa file target
+                if (targetPath && targetPath.includes(item.name)) {
+                    ul.classList.add('expanded');
+                }
 
                 label.onclick = (e) => {
                     e.stopPropagation();
@@ -50,6 +60,11 @@ export async function loadLibrary() {
                 label.className = 'tree-label is-file selectable-file';
                 const icon = item.hasAudio ? '🎧' : '📄';
                 label.innerHTML = `<span class="tree-icon">${icon}</span> ${item.name.replace(/\.[^.]+$/, "")}`;
+                
+                // Xác định element cần auto-click
+                if (item.path === targetPath) {
+                    targetFileEl = label;
+                }
 
                 label.onclick = async (e) => {
                     if (e) e.stopPropagation();
@@ -71,14 +86,18 @@ export async function loadLibrary() {
                             parsed.title = removeExtension(item.name);
                         }
 
-                        // [SỬA Ở ĐÂY] -----------------------------------------
-                        // Dùng item.fileName (tên gốc) nếu có, để khớp với file Audio trên server
                         const originalFileName = item.fileName || item.name;
                         const fileNameOnly = removeExtension(originalFileName);
                         const audioUrl = item.hasAudio ? `${AUDIO_BASE}${fileNameOnly}.mp3` : null;
-                        // -----------------------------------------------------
 
-                        Store.setSourceUnified(parsed, item.hasAudio, audioUrl);
+                        // [MODIFIED] Gửi thêm item.path vào Store
+                        Store.setSourceUnified(parsed, item.hasAudio, audioUrl, item.path);
+                        
+                        // [NEW] Cập nhật URL Bar mà không reload trang
+                        const url = new URL(window.location);
+                        url.searchParams.set('lesson', item.path);
+                        window.history.pushState({}, '', url);
+
                         document.dispatchEvent(new CustomEvent("app:content-loaded"));
 
                     } catch (err) {
@@ -105,12 +124,21 @@ export async function loadLibrary() {
                 container.classList.add('hidden');
             }
         });
-        // --------------------------------------
 
-        // Tự động chọn bài đầu tiên (đoạn cũ)
-        const firstFile = container.querySelector('.selectable-file');
-        if (firstFile) {
-            firstFile.click();
+        // [MODIFIED] Tự động chọn bài dựa trên URL hoặc bài đầu tiên
+        if (targetFileEl) {
+            // Mở thư mục cha nếu cần thiết
+            let parentUl = targetFileEl.closest('.tree-ul');
+            while(parentUl) {
+                parentUl.classList.add('expanded');
+                parentUl = parentUl.parentElement.closest('.tree-ul');
+            }
+            targetFileEl.click();
+        } else {
+            const firstFile = container.querySelector('.selectable-file');
+            if (firstFile) {
+                firstFile.click();
+            }
         }
 
     } catch (e) {
@@ -122,12 +150,18 @@ export async function loadUserContent(rawText, fileName) {
     try {
         const parsed = parseUnified(rawText);
 
-        // [THÊM LOGIC TIÊU ĐỀ CHO FILE UPLOAD]
         if (!parsed.title) {
             parsed.title = removeExtension(fileName);
         }
 
-        Store.setSourceUnified(parsed, false, null);
+        // Truyền null cho lessonPath vì đây là file nội bộ user upload
+        Store.setSourceUnified(parsed, false, null, null);
+        
+        //[NEW] Xoá tham số 'lesson' khỏi URL nếu user tự tải file của họ
+        const url = new URL(window.location);
+        url.searchParams.delete('lesson');
+        window.history.pushState({}, '', url);
+
         return true;
     } catch (e) {
         console.error(e);

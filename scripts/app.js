@@ -12,7 +12,7 @@ import { initVocabUI, saveHighlightedWord, clearVocabList } from "./vocab.js";
 
 const superPlayer = new SuperAudioPlayer();
 let mainController;
-// [NEW] Biến lưu timer để xử lý phân biệt Click vs Double Click
+// Biến lưu timer để xử lý phân biệt Click vs Double Click
 let clickTimer = null;
 let isGlobalPlaying = false;
 
@@ -59,7 +59,6 @@ function playNextLesson() {
 }
 
 function playCurrentSegment() {
-    // [NEW] Khi phát segment lẻ, phải tắt chế độ Global Play để tránh xung đột
     updatePlayAllIcon(false);
 
     if (!Store.isAudio()) return;
@@ -75,7 +74,6 @@ function updatePlayAllIcon(isPlaying) {
     isGlobalPlaying = isPlaying;
     if (DOM.dictationPlayAllBtn) {
         DOM.dictationPlayAllBtn.textContent = isPlaying ? "⏸" : "▶";
-        // Highlight nút khi đang active
         DOM.dictationPlayAllBtn.style.color = isPlaying ? "var(--correct-color)" : "inherit";
         DOM.dictationPlayAllBtn.style.borderColor = isPlaying ? "var(--correct-color)" : "var(--border-color)";
     }
@@ -88,26 +86,20 @@ function initCursorHider() {
     let cursorTimer = null;
 
     const showCursor = () => {
-        // Hiện lại con trỏ
         document.body.classList.remove('hide-cursor');
 
-        // Hủy bỏ bộ đếm cũ nếu có
         if (cursorTimer) {
             clearTimeout(cursorTimer);
         }
 
-        // Thiết lập bộ đếm mới: Nếu 2.5 giây không di chuyển chuột thì ẩn đi
         cursorTimer = setTimeout(() => {
             document.body.classList.add('hide-cursor');
         }, 2500);
     };
 
-    // Khi người dùng rê chuột -> Bật lại con trỏ và bắt đầu đếm giờ
     document.addEventListener('mousemove', showCursor);
 
-    // Khi người dùng bắt đầu gõ phím -> Ẩn con trỏ NGAY LẬP TỨC
     document.addEventListener('keydown', (e) => {
-        // Nếu nhấn các phím chức năng (Ctrl, Alt, Shift) thì bỏ qua, chỉ ẩn khi thực sự gõ hoặc Space/Enter
         if (e.key === 'Control' || e.key === 'Shift' || e.key === 'Alt' || e.key === 'Meta') return;
 
         document.body.classList.add('hide-cursor');
@@ -119,7 +111,6 @@ function initCursorHider() {
 
 export async function initApp() {
     initController();
-    // Khởi chạy tính năng ẩn chuột
     initCursorHider();
 
     if (DOM.volumeInput) {
@@ -182,15 +173,12 @@ export async function initApp() {
     // XỬ LÝ CLICK (PHÁT ÂM TỪ) & DOUBLE CLICK (PHÁT SEGMENT)
     // =========================================================
 
-    // 1. Single Click: Phát âm từ vựng (Có độ trễ để chờ Double Click)
     DOM.textDisplay.addEventListener("click", (e) => {
         if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
-        if (window.getSelection().toString().length > 0) return; // Đang bôi đen thì không click
+        if (window.getSelection().toString().length > 0) return; 
 
-        // Reset timer cũ nếu có (dù ít khi xảy ra)
         if (clickTimer) clearTimeout(clickTimer);
 
-        // Thiết lập Timer chờ 250ms
         clickTimer = setTimeout(() => {
             const charIndex = Store.getState().textSpans.indexOf(e.target);
             if (charIndex === -1) return;
@@ -209,7 +197,6 @@ export async function initApp() {
                 playCurrentSegment();
             }
             else {
-                // Logic tìm từ và phát âm (TTS/Dictionary)
                 const { wordStarts, wordTokens } = Store.getState();
                 for (let i = 0; i < wordStarts.length; i++) {
                     const start = wordStarts[i];
@@ -217,21 +204,19 @@ export async function initApp() {
 
                     if (charIndex >= start && charIndex < end) {
                         const word = wordTokens[i];
-                        enqueueSpeak(word, true); // Phát âm
+                        enqueueSpeak(word, true); 
                         break;
                     }
                 }
             }
 
-            clickTimer = null; // Reset timer sau khi chạy xong
-        }, 250); // 250ms là độ trễ tiêu chuẩn cho double click
+            clickTimer = null; 
+        }, 250); 
     });
 
-    // 2. Double Click: Phát Audio Segment (Nếu có)
     DOM.textDisplay.addEventListener("dblclick", (e) => {
         if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
 
-        // [QUAN TRỌNG] Hủy sự kiện Single Click đang chờ
         if (clickTimer) {
             clearTimeout(clickTimer);
             clickTimer = null;
@@ -240,8 +225,6 @@ export async function initApp() {
         const charIndex = Store.getState().textSpans.indexOf(e.target);
         if (charIndex === -1) return;
 
-
-        // Logic tìm từ và phát âm (TTS/Dictionary)
         const { wordStarts, wordTokens } = Store.getState();
         for (let i = 0; i < wordStarts.length; i++) {
             const start = wordStarts[i];
@@ -249,19 +232,58 @@ export async function initApp() {
 
             if (charIndex >= start && charIndex < end) {
                 const word = wordTokens[i];
-                enqueueSpeak(word, true); // Phát âm
+                enqueueSpeak(word, true); 
                 break;
             }
-
         }
     });
 
     // =========================================================
-    // KHỞI TẠO TÍNH NĂNG TỪ VỰNG & BẮT SỰ KIỆN BÔI ĐEN
+    // KHỞI TẠO TÍNH NĂNG TỪ VỰNG, CHIA SẺ & EDIT
     // =========================================================
     initVocabUI();
+    
+    // Nút chỉnh sửa bài học trên GitHub (mở chế độ edit của Repo)
+    if (DOM.editBtn) {
+        DOM.editBtn.onclick = () => {
+            const path = Store.getCurrentLessonPath();
+            if (!path) {
+                alert("Bạn chỉ có thể chỉnh sửa các bài tập có sẵn từ thư viện.");
+                return;
+            }
+            // Mở chế độ Edit trên repo Github gốc
+            const githubUrl = `https://github.com/idmbull/en/edit/main/library/${encodeURI(path)}`;
+            window.open(githubUrl, '_blank');
+        };
+    }
 
-    let selectedWordData = null; // Lưu trữ cả chữ và vị trí index
+    // Nút chia sẻ bài học
+    if (DOM.shareBtn) {
+        DOM.shareBtn.onclick = async () => {
+            const path = Store.getCurrentLessonPath();
+            if (!path) {
+                alert("Bạn chỉ có thể chia sẻ các bài tập được chọn từ thư viện có sẵn.");
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                const originalText = DOM.shareBtn.innerHTML;
+                DOM.shareBtn.innerHTML = "✔️ Đã copy Link!";
+                DOM.shareBtn.style.color = "var(--correct-color)";
+                DOM.shareBtn.style.borderColor = "var(--correct-color)";
+                
+                setTimeout(() => {
+                    DOM.shareBtn.innerHTML = originalText;
+                    DOM.shareBtn.style.color = "";
+                    DOM.shareBtn.style.borderColor = "";
+                }, 2000);
+            } catch (err) {
+                alert("Không thể copy link, trình duyệt từ chối quyền truy cập clipboard.");
+            }
+        };
+    }
+
+    let selectedWordData = null; 
 
     DOM.textDisplay.addEventListener("mouseup", (e) => {
         setTimeout(() => {
@@ -272,16 +294,12 @@ export async function initApp() {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
 
-                // Lấy thẻ <span> bắt đầu của vùng bôi đen
                 let startNode = range.startContainer;
-                // Nếu browser trả về TextNode (loại 3), ta lấy phần tử cha là thẻ <span>
                 if (startNode.nodeType === 3) startNode = startNode.parentElement;
 
-                // Tìm vị trí của thẻ <span> này trong mảng dữ liệu
                 const spans = Store.getState().textSpans;
                 const startIndex = spans.indexOf(startNode);
 
-                // Lưu tạm dữ liệu chờ bấm nút
                 selectedWordData = { word: text, index: startIndex };
 
                 DOM.floatingHighlightBtn.style.top = `${rect.top - 40}px`;
@@ -302,19 +320,14 @@ export async function initApp() {
 
     DOM.floatingHighlightBtn.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        // Gọi hàm lưu từ vựng kèm theo vị trí Index
         if (selectedWordData && selectedWordData.index !== -1) {
             saveHighlightedWord(selectedWordData.word, selectedWordData.index);
         }
     });
 
-    // Reset danh sách từ vựng khi load bài tập mới
     document.addEventListener("app:content-loaded", () => {
         clearVocabList();
     });
-    // =========================================================
-
-    // =========================================================
 
     mainController = new ExerciseController("unified", {
         onReset: () => {
@@ -335,25 +348,17 @@ export async function initApp() {
 
     if (DOM.dictationPlayAllBtn) {
         superPlayer.onEnded = () => {
-            // Khi hết bài thì reset icon về Play
             updatePlayAllIcon(false);
-            // Có thể reset pausedAt về 0 nếu muốn lần sau bấm là nghe lại từ đầu
             superPlayer.pausedAt = 0;
         };
 
         DOM.dictationPlayAllBtn.onclick = () => {
             if (!Store.isAudio()) return;
 
-            // Kiểm tra trạng thái thực tế từ Player
             if (superPlayer.isPlaying) {
-                // Đang Play -> Bấm vào thì Pause
                 superPlayer.pause();
-                updatePlayAllIcon(false); // Hiện icon Play
+                updatePlayAllIcon(false); 
             } else {
-                // Đang Pause -> Bấm vào thì Resume
-
-                // Logic thông minh: 
-                // 1. Nếu chưa phát bao giờ (pausedAt == 0), có thể lấy vị trí con trỏ hiện tại làm mốc
                 if (superPlayer.pausedAt === 0) {
                     const s = Store.getSource();
                     if (s.segments && s.segments[s.currentSegment]) {
@@ -362,7 +367,7 @@ export async function initApp() {
                 }
 
                 superPlayer.resume();
-                updatePlayAllIcon(true); // Hiện icon Pause
+                updatePlayAllIcon(true); 
             }
 
             if (DOM.textInput && !DOM.textInput.disabled) DOM.textInput.focus();
@@ -410,7 +415,7 @@ function setupDictationModal() {
                     hasAudio = false;
                 }
 
-                Store.setSourceUnified(Store.getSource(), hasAudio, null);
+                Store.setSourceUnified(Store.getSource(), hasAudio, null, null);
                 document.dispatchEvent(new CustomEvent("app:content-loaded"));
                 dictationBtn.innerHTML = `${hasAudio ? "🎧" : "📄"} ${subFile.name}`;
                 dictationModal.classList.add("hidden");
