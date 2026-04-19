@@ -136,7 +136,7 @@ export async function initApp() {
 
     document.addEventListener("app:content-loaded", async () => {
         const source = Store.getSource();
-        
+
         // --- [MỚI] Tự động đổi giao diện theo ngôn ngữ ---
         if (source.language === "zh") {
             setTheme("mandarin");
@@ -187,7 +187,7 @@ export async function initApp() {
 
     DOM.textDisplay.addEventListener("click", (e) => {
         if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
-        if (window.getSelection().toString().length > 0) return; 
+        if (window.getSelection().toString().length > 0) return;
 
         if (clickTimer) clearTimeout(clickTimer);
 
@@ -216,14 +216,14 @@ export async function initApp() {
 
                     if (charIndex >= start && charIndex < end) {
                         const word = wordTokens[i];
-                        enqueueSpeak(word, true); 
+                        enqueueSpeak(word, true);
                         break;
                     }
                 }
             }
 
-            clickTimer = null; 
-        }, 250); 
+            clickTimer = null;
+        }, 250);
     });
 
     DOM.textDisplay.addEventListener("dblclick", (e) => {
@@ -244,7 +244,7 @@ export async function initApp() {
 
             if (charIndex >= start && charIndex < end) {
                 const word = wordTokens[i];
-                enqueueSpeak(word, true); 
+                enqueueSpeak(word, true);
                 break;
             }
         }
@@ -254,7 +254,7 @@ export async function initApp() {
     // KHỞI TẠO TÍNH NĂNG TỪ VỰNG, CHIA SẺ & EDIT
     // =========================================================
     initVocabUI();
-    
+
     if (DOM.editBtn) {
         DOM.editBtn.onclick = () => {
             const path = Store.getCurrentLessonPath();
@@ -277,10 +277,12 @@ export async function initApp() {
             try {
                 await navigator.clipboard.writeText(window.location.href);
                 const originalText = DOM.shareBtn.innerHTML;
-                DOM.shareBtn.innerHTML = "✔️ Đã copy Link!";
+
+                // Đổi thành icon tích thay vì text dài để giữ nút luôn tròn
+                DOM.shareBtn.innerHTML = "✔️";
                 DOM.shareBtn.style.color = "var(--correct-color)";
                 DOM.shareBtn.style.borderColor = "var(--correct-color)";
-                
+
                 setTimeout(() => {
                     DOM.shareBtn.innerHTML = originalText;
                     DOM.shareBtn.style.color = "";
@@ -292,7 +294,7 @@ export async function initApp() {
         };
     }
 
-    let selectedWordData = null; 
+    let selectedWordData = null;
 
     DOM.textDisplay.addEventListener("mouseup", (e) => {
         setTimeout(() => {
@@ -366,7 +368,7 @@ export async function initApp() {
 
             if (superPlayer.isPlaying) {
                 superPlayer.pause();
-                updatePlayAllIcon(false); 
+                updatePlayAllIcon(false);
             } else {
                 if (superPlayer.pausedAt === 0) {
                     const s = Store.getSource();
@@ -376,7 +378,7 @@ export async function initApp() {
                 }
 
                 superPlayer.resume();
-                updatePlayAllIcon(true); 
+                updatePlayAllIcon(true);
             }
 
             if (DOM.textInput && !DOM.textInput.disabled) DOM.textInput.focus();

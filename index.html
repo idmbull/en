@@ -98,9 +98,6 @@
         </div>
 
         <footer>
-            <button id="editBtn" class="btn-icon" title="Sửa bài tập trên GitHub">✏️ Edit</button>
-            <button id="shareBtn" class="btn-icon" title="Chia sẻ bài tập">🔗 Share</button>
-            <button id="vocabBtn" class="btn-icon" title="Danh sách từ vựng">📝 Vocab</button>
             <input type="file" id="fileLoader" accept=".txt,.md,.json,.tsv,.mp3" hidden multiple>
             <button id="fileLoaderBtn" class="btn-icon">📂 Load</button>
 
@@ -112,6 +109,10 @@
                 <div class="dropdown-content hidden" id="playlistContent"></div>
             </div>
             <input type="hidden" id="playlist" value="">
+
+            <button id="editBtn" class="btn-icon icon-only" title="Sửa bài tập trên GitHub">✏️</button>
+            <button id="shareBtn" class="btn-icon icon-only" title="Chia sẻ bài tập">🔗</button>
+            <button id="vocabBtn" class="btn-icon icon-only" title="Danh sách từ vựng">📝</button>
         </footer>
     </div>
 
@@ -149,7 +150,7 @@
             </div>
         </div>
     </div>
-    
+
     <div id="resultModal" class="modal hidden">
         <div class="modal-content" style="text-align: center;">
             <h2 style="color: var(--accent-color); margin-bottom: 10px;">🎉 Hoàn thành!</h2>
