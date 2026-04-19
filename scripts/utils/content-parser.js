@@ -1,50 +1,27 @@
+// scripts/utils/content-parser.js
 import { convertMarkdownToPlain } from "../utils.js";
 
 const TIMESTAMP_REGEX = /^([\d.]+)\s+([\d.]+)/;
 
-// [CẬP NHẬT] Kiểm tra ký tự CJK mở rộng
-// \u2000-\u206f: General Punctuation (QUAN TRỌNG: Chứa “ ” ‘ ’ … —)
-// \u3000-\u303f: CJK Symbols and Punctuation (Dấu câu CJK 。 、 【 】)
-// \uff00-\uffef: Fullwidth Forms (Dấu câu toàn khổ ： ！ ？ ，)
-// \u4e00-\u9fa5: CJK Unified Ideographs (Chữ Hán)
-// \uac00-\ud7af: Hangul (Tiếng Hàn)
+// Kiểm tra ký tự CJK mở rộng
 function isCJK(char) {
     if (!char) return false;
     return /[\u2000-\u206f\u3000-\u303f\uff00-\uffef\u4e00-\u9fa5\uac00-\ud7af]/.test(char);
 }
 
-// Hàm làm sạch cơ bản cho metadata
-function cleanText(text) {
-    if (!text) return "";
-    return text
-        .replace(/&nbsp;/gi, " ")
-        .replace(/\u00A0/g, " ")
-        .replace(/[‘’]/g, "'")
-        // .replace(/[“”]/g, "\"")
-        .replace(/[—–]/g, "-")
-        .replace(/ …/g, "...")
-        .replace(/…/g, "...")
-        .replace(/\u200B/g, "");
-}
-
-// [REFACTOR] Hàm làm sạch dành riêng cho nội dung gõ (Typing Engine)
+// Hàm làm sạch dành riêng cho nội dung gõ (Typing Engine)
 function cleanForTyping(text) {
     if (!text) return "";
 
     let s = text;
-
     // 1. Loại bỏ Footnote: ^[note] trước để tránh xử lý nhầm bên trong
     s = s.replace(/\^\[[^\]]+\]/g, '');
-
     // 2. Loại bỏ Skipped Text: `content`
     s = s.replace(/`[^`]+`/g, '');
-
     // 3. Loại bỏ định dạng Markdown
     s = s.replace(/[*_~]+/g, '');
-
     // 4. Thay thế các ký tự xuống dòng/tab bằng dấu cách
     s = s.replace(/[\r\n\t]+/g, ' ');
-
     // 5. Gộp nhiều dấu cách liên tiếp thành 1 
     s = s.replace(/\s+/g, ' ');
 
@@ -66,12 +43,52 @@ export function parseUnified(rawContent) {
         text: "",
         html: "",
         segments: [],
-        charStarts: [],
-        rawLength: 0
+        charStarts:[],
+        rawLength: 0,
+        language: "en" // Mặc định là Tiếng Anh
     };
 
-    let blocks = [];
+    let blocks =[];
     let isDictation = lines.some(line => TIMESTAMP_REGEX.test(line.trim()));
+
+    // Xác định ngôn ngữ dựa vào nội dung file
+    const isChineseDoc = /[\u4e00-\u9fa5]/.test(rawContent);
+    const isKoreanDoc = /[\uAC00-\uD7AF]/.test(rawContent); 
+
+    if (isChineseDoc) {
+        result.language = "zh";
+    } else if (isKoreanDoc) {
+        result.language = "ko";
+    }
+
+    let openDouble = true; // Trạng thái đóng/mở nháy kép chạy xuyên suốt toàn bài
+
+    // Hàm xử lý Text & Đồng bộ Dấu nháy hiển thị
+    const cleanLine = (text) => {
+        if (!text) return "";
+        let s = text
+            .replace(/&nbsp;/gi, " ")
+            .replace(/\u00A0/g, " ")
+            .replace(/[—–]/g, "-")
+            .replace(/ …/g, "...")
+            .replace(/…/g, "...");
+
+        // Xử lý nắn dấu tự động theo ngôn ngữ
+        if (isChineseDoc) {
+            // Tiếng Trung: Thay nháy thẳng (") thành nháy cong (“ ”)
+            s = s.replace(/"/g, () => {
+                let repl = openDouble ? '“' : '”';
+                openDouble = !openDouble;
+                return repl;
+            });
+        } else {
+            // Tiếng Anh: Thay nháy cong/đặc biệt về nháy thẳng chuẩn (")
+            s = s.replace(/[“”「」『』«»]/g, '"');
+            s = s.replace(/[‘’]/g, "'");
+        }
+
+        return s.replace(/\u200B/g, "");
+    };
 
     lines.forEach(line => {
         const trimmed = line.trim();
@@ -83,16 +100,17 @@ export function parseUnified(rawContent) {
         }
 
         if (trimmed.startsWith("# ")) {
-            result.title = cleanText(trimmed.replace("#", "").trim());
+            result.title = cleanLine(trimmed.replace("#", "").trim());
             return;
         }
 
         if (trimmed.startsWith("##")) {
-            blocks.push({ type: 'header', content: cleanText(trimmed.replace(/^#+\s*/, "")) });
+            blocks.push({ type: 'header', content: cleanLine(trimmed.replace(/^#+\s*/, "")) });
         } else if (isDictation && TIMESTAMP_REGEX.test(trimmed)) {
-            blocks.push(parseDictationLine(trimmed));
+            // Truyền hàm cleanLine xuống cho phần tử audio
+            blocks.push(parseDictationLine(trimmed, cleanLine));
         } else {
-            blocks.push({ type: 'paragraph', content: cleanText(trimmed) });
+            blocks.push({ type: 'paragraph', content: cleanLine(trimmed) });
         }
     });
 
@@ -105,7 +123,7 @@ export function parseUnified(rawContent) {
     return result;
 }
 
-function parseDictationLine(line) {
+function parseDictationLine(line, cleanFunc) {
     const parts = line.split("\t");
     let start = 0, end = 0, speaker = null, textRaw = "";
 
@@ -117,7 +135,7 @@ function parseDictationLine(line) {
         if (m) { start = parseFloat(m[1]); end = parseFloat(m[2]); textRaw = m[3].trim(); }
         else textRaw = line;
     }
-    return { type: 'audio', start, end, speaker: cleanText(speaker), content: cleanText(textRaw) };
+    return { type: 'audio', start, end, speaker: cleanFunc(speaker), content: cleanFunc(textRaw) };
 }
 
 function formatHtmlContent(text) {
@@ -214,7 +232,6 @@ function assembleData(blocks, result) {
 
             if (lastRawChar && block.content) {
                 const firstChar = block.content[0];
-                // Cập nhật: Kiểm tra CJK với cả các dấu ngoặc kép, gạch ngang...
                 if (!block.speaker && isCJK(lastRawChar) && isCJK(firstChar)) {
                     htmlPrefix = "";
                 }

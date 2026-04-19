@@ -1,3 +1,4 @@
+// scripts/input-controller.js
 import { DOM } from "./state.js";
 import { Store } from "./core/store.js";
 import { runTypingEngine, resetTypingEngine } from "./typing-engine.js";
@@ -18,12 +19,46 @@ let virtualValue = "";
 function isPunctuation(str) {
     // Regex này bao gồm:
     // 1. Dấu câu ASCII cơ bản: [.,!?;:'"(){}[\]]
-    // 2. Dấu câu CJK (Trung/Nhật/Hàn) và Fullwidth: [\u3000-\u303F\uFF00-\uFFEF]
+    // 2. Dấu câu CJK (Trung/Nhật/Hàn) và Fullwidth:[\u3000-\u303F\uFF00-\uFFEF]
     return /^[.,!?;:'"(){}[\]\u3000-\u303F\uFF00-\uFFEF]+$/.test(str);
 }
 
 function isKoreanText(text) {
     return /[\uAC00-\uD7AF]/.test(text);
+}
+
+// --- THÊM HÀM NÀY ĐỂ XỬ LÝ DẤU NHÁY ĐỒNG BỘ ---
+function applySmartQuotes(incomingText, currentVirtualLen) {
+    const state = Store.getState();
+    const expectedText = state.source.text;
+    if (!expectedText) return incomingText;
+
+    // Định nghĩa các tập hợp dấu nháy kép và nháy đơn của các ngôn ngữ
+    const DOUBLE_QUOTES =['"', '“', '”', '«', '»', '「', '」', '『', '』'];
+    const SINGLE_QUOTES =["'", '‘', '’'];
+
+    let result = "";
+    for (let i = 0; i < incomingText.length; i++) {
+        const char = incomingText[i];
+        const expectedChar = expectedText[currentVirtualLen + i];
+
+        if (expectedChar) {
+            // Nếu người dùng gõ nháy kép VÀ văn bản gốc cũng là nháy kép (nhưng khác chuẩn) -> Ép về chuẩn của văn bản gốc
+            if (DOUBLE_QUOTES.includes(char) && DOUBLE_QUOTES.includes(expectedChar)) {
+                result += expectedChar;
+            } 
+            // Tương tự với dấu nháy đơn
+            else if (SINGLE_QUOTES.includes(char) && SINGLE_QUOTES.includes(expectedChar)) {
+                result += expectedChar;
+            } 
+            else {
+                result += char;
+            }
+        } else {
+            result += char;
+        }
+    }
+    return result;
 }
 
 // --- TOOLTIP IME (Giữ nguyên) ---
@@ -114,10 +149,13 @@ export function initController() {
             isComposing = false;
             hideImeTooltip();
 
-            const committedText = e.data;
+            let committedText = e.data;
             let isKo = false; // Cờ đánh dấu tiếng Hàn
 
             if (committedText) {
+                // [NEW] Xử lý đồng bộ dấu nháy kép/đơn cho bộ gõ IME
+                committedText = applySmartQuotes(committedText, virtualValue.length);
+
                 virtualValue += committedText;
                 isKo = isKoreanText(committedText);
 
@@ -144,8 +182,11 @@ export function initController() {
             if (isComposing) return;
 
             if (e.inputType === 'insertText' || e.inputType === 'insertFromPaste') {
-                const char = e.data || DOM.textInput.value;
+                let char = e.data || DOM.textInput.value;
                 if (char) {
+                    // [NEW] Xử lý đồng bộ dấu nháy khi gõ bàn phím thường
+                    char = applySmartQuotes(char, virtualValue.length);
+
                     virtualValue += char;
                     handleGlobalInput(virtualValue);
                 }
@@ -191,7 +232,7 @@ function findSegmentIndex(caret, charStarts) {
     return 0;
 }
 
-// --- [SỬA ĐỔI SIGNATURE HÀM] ---
+// ---[SỬA ĐỔI SIGNATURE HÀM] ---
 // Thêm tham số suppressEngineAudio (mặc định false)
 export function handleGlobalInput(overrideText = null, suppressEngineAudio = false) {
     let rawInput = (overrideText !== null) ? overrideText : virtualValue;
@@ -260,7 +301,7 @@ export function handleGlobalInput(overrideText = null, suppressEngineAudio = fal
 
     Store.setPrevInputLen(currentLen);
 
-    // --- [LOGIC PHÁT ÂM ENGINE] ---
+    // ---[LOGIC PHÁT ÂM ENGINE] ---
     // Chỉ phát âm từ Engine tìm thấy nếu KHÔNG bị chặn bởi IME
     if (newWord && !isDeleting && !suppressEngineAudio) {
         EventBus.emit(EVENTS.INPUT_NEW_WORD, { word: newWord });

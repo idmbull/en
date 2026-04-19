@@ -1,3 +1,4 @@
+// scripts/app.js
 import { DOM } from "./state.js";
 import { Store } from "./core/store.js";
 import { loadLibrary, loadUserContent } from "./loader.js";
@@ -9,6 +10,7 @@ import { replayLastWord, enqueueSpeak } from "./audio.js";
 import { EventBus, EVENTS } from "./core/events.js";
 import { setupDragDrop } from "./utils/drag-drop.js";
 import { initVocabUI, saveHighlightedWord, clearVocabList } from "./vocab.js";
+import { setTheme } from "./theme.js"; // <--- Import setTheme
 
 const superPlayer = new SuperAudioPlayer();
 let mainController;
@@ -134,6 +136,16 @@ export async function initApp() {
 
     document.addEventListener("app:content-loaded", async () => {
         const source = Store.getSource();
+        
+        // --- [MỚI] Tự động đổi giao diện theo ngôn ngữ ---
+        if (source.language === "zh") {
+            setTheme("mandarin");
+        } else if (source.language === "ko") {
+            setTheme("korean");
+        } else {
+            setTheme("idm"); // Tiếng Anh
+        }
+
         displayText(source.html);
         if (DOM.headerTitle) DOM.headerTitle.textContent = source.title || "Reading Practice";
         document.title = source.title ? `Idm - ${source.title}` : "Idm Typing Master";
@@ -243,7 +255,6 @@ export async function initApp() {
     // =========================================================
     initVocabUI();
     
-    // Nút chỉnh sửa bài học trên GitHub (mở chế độ edit của Repo)
     if (DOM.editBtn) {
         DOM.editBtn.onclick = () => {
             const path = Store.getCurrentLessonPath();
@@ -251,13 +262,11 @@ export async function initApp() {
                 alert("Bạn chỉ có thể chỉnh sửa các bài tập có sẵn từ thư viện.");
                 return;
             }
-            // Mở chế độ Edit trên repo Github gốc
             const githubUrl = `https://github.com/idmbull/en/edit/main/library/${encodeURI(path)}`;
             window.open(githubUrl, '_blank');
         };
     }
 
-    // Nút chia sẻ bài học
     if (DOM.shareBtn) {
         DOM.shareBtn.onclick = async () => {
             const path = Store.getCurrentLessonPath();
