@@ -29,7 +29,7 @@
 82.810000	86.620000		Scientists were able to tell that Laika was under a lot of stress.
 86.890000	89.170000		The trip **confused**^[make them feel like they are unsure] and scared her.
 89.400000	92.530000		Laika's entire ship had become as hot as a **furnace**^[a place where heat is made].
-92.740000	95.870000		Scientists were **powerless** to help the dog in her **misery**^[extreme suffering].
+92.740000	95.870000		Scientists were **powerless**^[bất lực] to help the dog in her **misery**^[extreme suffering].
 96.080000	98.800000		After about five hours, Laika died.
 
 99.420000	103.280000		Some have **complained**^[When you complain, you say that you are unhappy about something.] that the little dog should never have been used in the mission.
