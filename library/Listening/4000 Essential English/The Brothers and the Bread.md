@@ -17,7 +17,7 @@
 42.690000	45.000000		The younger brother **uttered a sigh**^[thở dài (Utter: nói một điều gì đó ngắn, đôi khi khó nói)].
 45.210000	47.620000		"Now we have to start again,"
 47.480000	48.480000		he said.
-48.800000	50.080000		“No, we don't,”
+48.800000	50.080000		"No, we don't,"
 50.140000	51.960000		the older brother replied.
 52.130000	53.310000		"I'll fix it.
 53.390000	56.380000		I just need to make the dough flat again
