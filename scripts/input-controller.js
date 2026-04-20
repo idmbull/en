@@ -15,11 +15,10 @@ let scroller;
 let isComposing = false;
 let imeTooltipEl = null;
 let virtualValue = "";
+let cachedSpanRect = null; // Cache lưu tọa độ để chống giật tooltip
 
 function isPunctuation(str) {
-    // Regex này bao gồm:
-    // 1. Dấu câu ASCII cơ bản: [.,!?;:'"(){}[\]]
-    // 2. Dấu câu CJK (Trung/Nhật/Hàn) và Fullwidth:[\u3000-\u303F\uFF00-\uFFEF]
+    // Regex bao gồm dấu ASCII cơ bản và dấu CJK
     return /^[.,!?;:'"(){}[\]\u3000-\u303F\uFF00-\uFFEF]+$/.test(str);
 }
 
@@ -27,15 +26,14 @@ function isKoreanText(text) {
     return /[\uAC00-\uD7AF]/.test(text);
 }
 
-// --- THÊM HÀM NÀY ĐỂ XỬ LÝ DẤU NHÁY ĐỒNG BỘ ---
+// Xử lý nắn dấu đồng bộ
 function applySmartQuotes(incomingText, currentVirtualLen) {
     const state = Store.getState();
     const expectedText = state.source.text;
     if (!expectedText) return incomingText;
 
-    // Định nghĩa các tập hợp dấu nháy kép và nháy đơn của các ngôn ngữ
     const DOUBLE_QUOTES =['"', '“', '”', '«', '»', '「', '」', '『', '』'];
-    const SINGLE_QUOTES =["'", '‘', '’'];
+    const SINGLE_QUOTES = ["'", '‘', '’'];
 
     let result = "";
     for (let i = 0; i < incomingText.length; i++) {
@@ -43,15 +41,11 @@ function applySmartQuotes(incomingText, currentVirtualLen) {
         const expectedChar = expectedText[currentVirtualLen + i];
 
         if (expectedChar) {
-            // Nếu người dùng gõ nháy kép VÀ văn bản gốc cũng là nháy kép (nhưng khác chuẩn) -> Ép về chuẩn của văn bản gốc
             if (DOUBLE_QUOTES.includes(char) && DOUBLE_QUOTES.includes(expectedChar)) {
                 result += expectedChar;
-            } 
-            // Tương tự với dấu nháy đơn
-            else if (SINGLE_QUOTES.includes(char) && SINGLE_QUOTES.includes(expectedChar)) {
+            } else if (SINGLE_QUOTES.includes(char) && SINGLE_QUOTES.includes(expectedChar)) {
                 result += expectedChar;
-            } 
-            else {
+            } else {
                 result += char;
             }
         } else {
@@ -61,7 +55,7 @@ function applySmartQuotes(incomingText, currentVirtualLen) {
     return result;
 }
 
-// --- TOOLTIP IME (Giữ nguyên) ---
+// --- TOOLTIP IME ---
 function getOrCreateImeTooltip() {
     if (!imeTooltipEl) {
         imeTooltipEl = document.createElement('div');
@@ -73,21 +67,22 @@ function getOrCreateImeTooltip() {
 
 function updateImeTooltip(text) {
     const tooltip = getOrCreateImeTooltip();
-    const state = Store.getState();
     if (!text) {
         tooltip.classList.remove('visible');
         return;
     }
+    
     tooltip.textContent = text;
-    tooltip.classList.add('visible');
-    const currentSpan = state.textSpans[state.prevIndex || 0];
-    if (currentSpan) {
-        const rect = currentSpan.getBoundingClientRect();
-        const topPos = rect.top - tooltip.offsetHeight - 5;
-        const leftPos = rect.left;
-        tooltip.style.top = `${topPos}px`;
-        tooltip.style.left = `${leftPos}px`;
+    
+    // Dùng bottom thay vì top để tooltip tự dãn lên trên không cần JS đo lại chiều cao
+    if (cachedSpanRect) {
+        const bottomPos = window.innerHeight - cachedSpanRect.top + 5;
+        tooltip.style.bottom = `${bottomPos}px`;
+        tooltip.style.left = `${cachedSpanRect.left}px`;
+        tooltip.style.top = 'auto'; // Reset top
     }
+
+    tooltip.classList.add('visible');
 }
 
 function hideImeTooltip() {
@@ -100,23 +95,38 @@ function syncInputPosition() {
     const inputArea = document.querySelector('.input-area');
     const textarea = DOM.textInput;
 
-    if (currentSpan && inputArea) {
+    if (currentSpan && inputArea && textarea) {
         const rect = currentSpan.getBoundingClientRect();
+        cachedSpanRect = rect; 
+
+        // [TỐI ƯU CỰC MẠNH] Fix triệt để lỗi Window IME bị nhảy (Jitter/Blinking)
+        // Mở rộng textarea cực lớn để Pinyin không bao giờ bị rớt dòng (wrap)
+        // Khi caret bị tràn ra ngoài, Chromium sẽ báo lỗi tọa độ (0,0) làm IME nhảy lên góc màn hình.
         inputArea.style.top = `${rect.top}px`;
         inputArea.style.left = `${rect.left}px`;
-        inputArea.style.height = `${rect.height}px`;
+        inputArea.style.width = `1000px`;
+        inputArea.style.height = `200px`;
+
+        textarea.style.whiteSpace = 'nowrap';
+        textarea.style.overflow = 'hidden';
+        textarea.style.width = '1000px';
+        textarea.style.height = '200px';
 
         const style = window.getComputedStyle(currentSpan);
         textarea.style.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
         textarea.style.lineHeight = style.lineHeight;
+
+        if (isComposing && imeTooltipEl && imeTooltipEl.classList.contains('visible')) {
+            const bottomPos = window.innerHeight - rect.top + 5;
+            imeTooltipEl.style.bottom = `${bottomPos}px`;
+            imeTooltipEl.style.left = `${rect.left}px`;
+        }
     }
 }
 
 export function initController() {
     if (!scroller && DOM.textContainer) {
-        scroller = new AutoScroller(DOM.textContainer, () => {
-            syncInputPosition();
-        });
+        scroller = new AutoScroller(DOM.textContainer);
     }
 
     if (DOM.textInput) {
@@ -136,45 +146,38 @@ export function initController() {
             }
         });
 
-        DOM.textInput.addEventListener('compositionstart', () => { isComposing = true; });
+        DOM.textInput.addEventListener('compositionstart', () => { 
+            isComposing = true; 
+            syncInputPosition(); // Chốt vị trí ngay khi bắt đầu gõ IME
+        });
 
         DOM.textInput.addEventListener('compositionupdate', (e) => {
             isComposing = true;
             updateImeTooltip(e.data);
-            syncInputPosition();
+            // Cố tình bỏ qua syncInputPosition() ở đây để tránh Layout Thrashing gây giật lag
         });
 
-        // --- [SỬA ĐỔI QUAN TRỌNG] ---
         DOM.textInput.addEventListener('compositionend', (e) => {
             isComposing = false;
             hideImeTooltip();
 
             let committedText = e.data;
-            let isKo = false; // Cờ đánh dấu tiếng Hàn
+            let isKo = false; 
 
             if (committedText) {
-                // [NEW] Xử lý đồng bộ dấu nháy kép/đơn cho bộ gõ IME
+                // Xử lý đồng bộ dấu nháy kép/đơn 
                 committedText = applySmartQuotes(committedText, virtualValue.length);
 
                 virtualValue += committedText;
                 isKo = isKoreanText(committedText);
 
-                // LOGIC PHÂN LUỒNG:
-                // 1. Nếu là Tiếng Hàn: KHÔNG phát âm ở đây (để Engine lo giống tiếng Anh)
-                // 2. Nếu là Tiếng Trung: Phát âm ngay lập tức
-                // 3. Check dấu câu
                 if (!isKo && !isPunctuation(committedText)) {
                     EventBus.emit(EVENTS.INPUT_NEW_WORD, { word: committedText });
                 }
             }
 
             DOM.textInput.value = "";
-
-            // Tham số thứ 2 của handleGlobalInput là 'suppressEngineAudio' (Chặn Engine)
-            // - Nếu là Tiếng Hàn (isKo = true) -> Truyền FALSE -> Để Engine tự phát âm.
-            // - Nếu là Tiếng Trung (isKo = false) -> Truyền TRUE -> Chặn Engine (vì đã phát ở trên rồi).
             handleGlobalInput(virtualValue, !isKo);
-
             requestAnimationFrame(syncInputPosition);
         });
 
@@ -184,9 +187,7 @@ export function initController() {
             if (e.inputType === 'insertText' || e.inputType === 'insertFromPaste') {
                 let char = e.data || DOM.textInput.value;
                 if (char) {
-                    // [NEW] Xử lý đồng bộ dấu nháy khi gõ bàn phím thường
                     char = applySmartQuotes(char, virtualValue.length);
-
                     virtualValue += char;
                     handleGlobalInput(virtualValue);
                 }
@@ -195,9 +196,7 @@ export function initController() {
         });
 
         DOM.textContainer.addEventListener('click', () => {
-            // [FIX] Nếu người dùng đang bôi đen văn bản thì KHÔNG focus vào input
             if (window.getSelection().toString().length > 0) return;
-
             DOM.textInput.focus();
             setTimeout(syncInputPosition, 0);
         });
@@ -232,8 +231,6 @@ function findSegmentIndex(caret, charStarts) {
     return 0;
 }
 
-// ---[SỬA ĐỔI SIGNATURE HÀM] ---
-// Thêm tham số suppressEngineAudio (mặc định false)
 export function handleGlobalInput(overrideText = null, suppressEngineAudio = false) {
     let rawInput = (overrideText !== null) ? overrideText : virtualValue;
     const currentText = rawInput.replace(/\n/g, " ");
@@ -301,16 +298,12 @@ export function handleGlobalInput(overrideText = null, suppressEngineAudio = fal
 
     Store.setPrevInputLen(currentLen);
 
-    // ---[LOGIC PHÁT ÂM ENGINE] ---
-    // Chỉ phát âm từ Engine tìm thấy nếu KHÔNG bị chặn bởi IME
     if (newWord && !isDeleting && !suppressEngineAudio) {
         EventBus.emit(EVENTS.INPUT_NEW_WORD, { word: newWord });
         const nextIdx = findSegmentIndex(caret, state.wordStarts) + 1;
         const tokens = state.wordTokens;
         if (nextIdx < tokens.length) EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(nextIdx, nextIdx + PRELOAD_WINDOW));
-    }
-    // Nếu bị chặn (suppressEngineAudio = true) thì ta vẫn preload audio tiếp theo cho mượt
-    else if (suppressEngineAudio) {
+    } else if (suppressEngineAudio) {
         const nextIdx = findSegmentIndex(caret, state.wordStarts) + 1;
         const tokens = state.wordTokens;
         if (nextIdx < tokens.length) EventBus.emit(EVENTS.AUDIO_PRELOAD, tokens.slice(nextIdx, nextIdx + PRELOAD_WINDOW));
@@ -323,18 +316,13 @@ export function handleGlobalInput(overrideText = null, suppressEngineAudio = fal
         document.dispatchEvent(new CustomEvent("timer:stop"));
 
         setTimeout(() => {
-            // 1. Tính toán số liệu chính xác lần cuối cùng (dựa trên endTime)
-            // Lưu ý: finalLength ở đây là độ dài thực tế của văn bản (finalText.length)
             const results = getFinalResults(finalText.length);
 
-            // 2. [QUAN TRỌNG] Cập nhật ngược lại thanh stat-item cho khớp
-            // Để người dùng thấy con số trên thanh nhảy về đúng giá trị chốt hạ
             if (DOM.wpmEl) DOM.wpmEl.textContent = results.wpm;
             if (DOM.timeEl) DOM.timeEl.textContent = results.time;
             if (DOM.accuracyEl) DOM.accuracyEl.textContent = results.accuracy;
             if (DOM.errorsEl) DOM.errorsEl.textContent = results.errors;
 
-            // 3. Hiển thị Modal với cùng bộ số liệu đó
             if (DOM.resultModal) {
                 if (DOM.resAcc) DOM.resAcc.textContent = results.accuracy;
                 if (DOM.resWpm) DOM.resWpm.textContent = results.wpm;
