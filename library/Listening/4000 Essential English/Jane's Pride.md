@@ -36,7 +36,7 @@
 87.050000	91.140000		She remembered to **overlap**^[Hai thứ phủ lên nhau một phần hoặc có phần giống nhau.] the sails to **offset**^[bù lại để cân bằng] the wind.
 91.730000	94.000000		She steered the boat around the harbor
 93.940000	95.730000		where the water was shallow.
-95.930000	97.530000		When they got to shore,
+95.930000	97.530000		When they got to the shore,
 97.650000	99.760000		Mike came out from under the deck.
 
 100.000000	101.150000		Jane said,
