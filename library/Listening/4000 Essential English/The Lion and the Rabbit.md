@@ -8,11 +8,11 @@
 24.740000	27.610000	then one of us will come to you every day.
 28.160000	31.310000	Then you don’t have to hunt and kill us.”
 
-31.960000	34.950000	The plan sounded well thought-out to the lion,
+31.960000	34.950000	The plan sounded well thought-out **to the lion**^[in the lion's opinion (Sound + Adj + to somebody)],
 35.100000	36.390000	so he agreed,
 36.600000	38.030000	but he also said,
 38.250000	40.350000	“If you don’t come every day,
-40.410000	43.350000	I promise to kill all of you the next day!”
+40.410000	43.350000	I promise to kill all of you **the next day**^[cụm chỉ thời gian (adverbial of time) thường không cần giới từ]!”
 
 44.100000	49.620000	Each day after that, one animal went to the lion so that the lion could eat it. 
 50.130000	53.180000	Then, all the other animals were safe.
@@ -48,4 +48,3 @@
 123.090000	124.570000	He never came out.
 
 124.870000	130.710000	All of the other animals in the forest were very pleased with the rabbit’s clever trick.
-
