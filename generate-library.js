@@ -23,15 +23,15 @@ function hasTimestamps(filePath) {
 }
 
 /**
- * Lấy thời gian commit ĐẦU TIÊN (Ngày tạo file trên Git)
+ * Lấy thời gian commit GẦN NHẤT (Ngày sửa đổi file trên Git)
  */
-function getGitCreationTime(filePath) {
+function getGitModificationTime(filePath) {
     try {
         const dir = path.dirname(filePath);
         const base = path.basename(filePath);
         
-        // Lấy toàn bộ lịch sử timestamp của file
-        const cmd = `git log --follow --format=%at -- "${base}"`;
+        // Lấy timestamp của commit gần nhất (-1) có thay đổi file này
+        const cmd = `git log -1 --format=%at -- "${base}"`;
         
         const output = execSync(cmd, { 
             cwd: dir, 
@@ -40,20 +40,15 @@ function getGitCreationTime(filePath) {
         }).trim();
 
         if (output) {
-            // Output là danh sách timestamp (Mới nhất -> Cũ nhất)
-            // Vì ta muốn lấy "Ngày tạo" (Creation Date), ta lấy dòng cuối cùng
-            const timestamps = output.split('\n').filter(line => line.trim() !== '');
-            if (timestamps.length > 0) {
-                const firstCommit = timestamps[timestamps.length - 1];
-                return parseInt(firstCommit, 10);
-            }
+            return parseInt(output, 10);
         }
         
-        // Fallback: Nếu không có git history
-        return fs.statSync(filePath).birthtimeMs / 1000;
+        // Fallback: Nếu không có git history, dùng ngày sửa đổi của hệ thống (mtimeMs)
+        return fs.statSync(filePath).mtimeMs / 1000;
 
     } catch (e) {
-        return fs.statSync(filePath).birthtimeMs / 1000;
+        // Fallback: dùng ngày sửa đổi của hệ thống (mtimeMs)
+        return fs.statSync(filePath).mtimeMs / 1000;
     }
 }
 
@@ -81,21 +76,20 @@ function scanDirectory(currentPath, relativePath = "") {
     // 1. Thư mục sắp xếp theo tên (A-Z) để dễ tìm
     folders.sort((a, b) => a.name.localeCompare(b.name));
 
-    // 2. Lấy thời gian Git cho từng file
+    // 2. Lấy thời gian sửa đổi gần nhất cho từng file
     const filesWithDate = files.map(file => {
         const fullPath = path.join(currentPath, file.name);
-        const createdTime = getGitCreationTime(fullPath);
+        const modifiedTime = getGitModificationTime(fullPath);
         
         return {
             fileItem: file,
             fullPath: fullPath,
-            createdTime: createdTime
+            modifiedTime: modifiedTime
         };
     });
 
-    // [THAY ĐỔI Ở ĐÂY] 3. Sắp xếp file: MỚI NHẤT lên ĐẦU (Descending)
-    // b - a = Số lớn (mới hơn) đứng trước
-    filesWithDate.sort((a, b) => b.createdTime - a.createdTime);
+    // 3. Sắp xếp file: SỬA ĐỔI MỚI NHẤT lên ĐẦU (Descending)
+    filesWithDate.sort((a, b) => b.modifiedTime - a.modifiedTime);
 
     const result = [];
 
@@ -119,15 +113,15 @@ function scanDirectory(currentPath, relativePath = "") {
         const itemRelativePath = path.join(relativePath, file.name).replace(/\\/g, '/');
         
         // Đánh số 01, 02...
-        // Bài Mới Nhất sẽ là 01
+        // Bài sửa đổi mới nhất sẽ là 01
         const prefix = String(index + 1).padStart(2, '0');
         const numberedName = `${prefix}. ${file.name}`; 
         
         const containsTimeSlap = hasTimestamps(item.fullPath);
 
         result.push({
-            name: numberedName,       // Tên hiển thị (01. Bai moi nhat.md)
-            fileName: file.name,      // Tên gốc để load Audio (Bai moi nhat.md)
+            name: numberedName,       // Tên hiển thị (01. Bai sua moi nhat.md)
+            fileName: file.name,      // Tên gốc để load Audio
             path: itemRelativePath,
             hasAudio: containsTimeSlap
         });
@@ -137,7 +131,7 @@ function scanDirectory(currentPath, relativePath = "") {
 }
 
 function main() {
-    console.log("🚀 Đang quét và sắp xếp từ MỚI NHẤT đến CŨ NHẤT...");
+    console.log("🚀 Đang quét và sắp xếp theo ngày SỬA ĐỔI MỚI NHẤT...");
     
     try {
         const tree = scanDirectory(TEXTS_DIR);
