@@ -8,7 +8,7 @@
 24.740000	27.610000	then one of us will come to you every day.
 28.160000	31.310000	Then you don’t have to hunt and kill us.”
 
-31.960000	34.950000	The plan sounded well thought-out **to the lion**^[in the lion's opinion (Sound + Adj + to somebody)],
+31.960000	34.950000	The plan sounded well thought-out **to the lion**^[We can go to the movies tomorrow. How does that sound to you? → Okay, I like that idea.],
 35.100000	36.390000	so he agreed,
 36.600000	38.030000	but he also said,
 38.250000	40.350000	“If you don’t come every day,
