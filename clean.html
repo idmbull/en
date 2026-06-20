@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Markdown Cleaner</title>
+
+<style>
+:root{
+    --bg:#f5f7fb;
+    --card:#fff;
+    --border:#dcdfe6;
+    --primary:#2563eb;
+    --text:#1f2937;
+    --muted:#6b7280;
+}
+
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    padding:24px;
+    font-family:Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+}
+
+.card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+}
+
+h1{
+    margin-top:0;
+}
+
+.drop{
+    border:2px dashed var(--primary);
+    border-radius:12px;
+    padding:30px;
+    text-align:center;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.drop.drag{
+    background:#eef4ff;
+}
+
+textarea{
+    width:100%;
+    min-height:220px;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-family:Consolas,monospace;
+    resize:vertical;
+}
+
+pre{
+    background:#f8fafc;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:15px;
+    min-height:200px;
+    max-height:500px;
+    overflow:auto;
+    white-space:pre-wrap;
+    word-break:break-word;
+}
+
+.options{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+}
+
+button{
+    border:none;
+    border-radius:10px;
+    padding:10px 16px;
+    cursor:pointer;
+    background:var(--primary);
+    color:#fff;
+    margin:5px 5px 0 0;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+#status{
+    color:green;
+    margin-top:10px;
+}
+
+.stats{
+    color:var(--muted);
+    font-size:14px;
+    margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+    <h1>🧹 Markdown Cleaner</h1>
+
+    <p>
+        Xóa ghi chú <code>^[...]</code>, dấu <code>**</code>
+        và tùy chọn xóa timestamp.
+    </p>
+</div>
+
+<div class="card">
+
+    <h3>📂 Upload hoặc kéo thả file</h3>
+
+    <div class="drop" id="dropZone">
+        Kéo file .md/.txt vào đây hoặc bấm để chọn
+    </div>
+
+    <input type="file" id="fileInput"
+           accept=".md,.txt"
+           hidden>
+
+    <div id="fileName"></div>
+
+</div>
+
+<div class="card">
+
+    <h3>⚙️ Tùy chọn làm sạch</h3>
+
+    <div class="options">
+
+        <label>
+            <input type="checkbox" id="removeNotes" checked>
+            Xóa ^[...]
+        </label>
+
+        <label>
+            <input type="checkbox" id="removeBold" checked>
+            Xóa **
+        </label>
+
+        <label>
+            <input type="checkbox" id="removeTimestamp">
+            Xóa timestamp
+        </label>
+
+    </div>
+
+</div>
+
+<div class="card">
+
+    <h3>✏️ Nội dung đầu vào</h3>
+
+    <textarea id="input"
+placeholder="Dán nội dung Markdown vào đây..."></textarea>
+
+    <button id="cleanBtn">
+        Làm sạch
+    </button>
+
+    <button id="downloadBtn">
+        Tải file .md
+    </button>
+
+</div>
+
+<div class="card">
+
+    <h3>👀 Kết quả</h3>
+
+    <button id="copyBtn">
+        Copy kết quả
+    </button>
+
+    <pre id="preview"></pre>
+
+    <div class="stats" id="stats"></div>
+
+    <div id="status"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let output = "";
+let downloadName = "cleaned.md";
+
+const input = document.getElementById("input");
+const preview = document.getElementById("preview");
+const status = document.getElementById("status");
+const stats = document.getElementById("stats");
+
+function cleanMarkdown(text){
+
+    if(document.getElementById("removeNotes").checked){
+        text = text.replace(/\^\[[^\]]*\]/g,"");
+    }
+
+    if(document.getElementById("removeBold").checked){
+        text = text.replace(/\*\*/g,"");
+    }
+
+    if(document.getElementById("removeTimestamp").checked){
+        text = text.replace(
+            /^\d+\.\d+\s+\d+\.\d+\s+/gm,
+            ""
+        );
+    }
+
+    return text;
+}
+
+function updateStats(before,after){
+
+    const beforeLines = before.split(/\r?\n/).length;
+    const afterLines = after.split(/\r?\n/).length;
+
+    stats.textContent =
+        `Trước: ${before.length} ký tự / ${beforeLines} dòng | `
+        + `Sau: ${after.length} ký tự / ${afterLines} dòng`;
+}
+
+document.getElementById("cleanBtn").onclick = () => {
+
+    const text = input.value;
+
+    if(!text.trim()){
+        alert("Vui lòng nhập nội dung.");
+        return;
+    }
+
+    output = cleanMarkdown(text);
+
+    preview.textContent = output;
+
+    updateStats(text,output);
+
+    status.textContent = "✅ Đã làm sạch.";
+};
+
+document.getElementById("copyBtn").onclick = async () => {
+
+    if(!output){
+        alert("Chưa có kết quả.");
+        return;
+    }
+
+    await navigator.clipboard.writeText(output);
+
+    status.textContent = "📋 Đã copy.";
+};
+
+document.getElementById("downloadBtn").onclick = () => {
+
+    if(!output){
+        alert("Chưa có kết quả.");
+        return;
+    }
+
+    const blob = new Blob(
+        [output],
+        {type:"text/markdown"}
+    );
+
+    const a = document.createElement("a");
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download = downloadName;
+
+    a.click();
+
+    URL.revokeObjectURL(a.href);
+
+    status.textContent =
+        "⬇️ Đã tải file.";
+};
+
+function loadFile(file){
+
+    const reader = new FileReader();
+
+    reader.onload = e => {
+
+        input.value = e.target.result;
+
+        downloadName =
+            file.name.replace(/\.(md|txt)$/i,"")
+            + "_cleaned.md";
+
+        document.getElementById("fileName")
+            .textContent =
+            "📄 " + file.name;
+    };
+
+    reader.readAsText(file,"UTF-8");
+}
+
+document.getElementById("fileInput")
+.addEventListener("change",e=>{
+
+    if(e.target.files[0]){
+        loadFile(e.target.files[0]);
+    }
+
+});
+
+const drop = document.getElementById("dropZone");
+
+drop.onclick = () =>
+    document.getElementById("fileInput").click();
+
+drop.addEventListener("dragover",e=>{
+
+    e.preventDefault();
+
+    drop.classList.add("drag");
+
+});
+
+drop.addEventListener("dragleave",()=>{
+
+    drop.classList.remove("drag");
+
+});
+
+drop.addEventListener("drop",e=>{
+
+    e.preventDefault();
+
+    drop.classList.remove("drag");
+
+    const file = e.dataTransfer.files[0];
+
+    if(file){
+        loadFile(file);
+    }
+
+});
+
+</script>
+
+</body>
+</html>
